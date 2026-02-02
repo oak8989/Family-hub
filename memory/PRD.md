@@ -15,6 +15,7 @@ Build a family app with: shared calendar, shopping list, task list, shared notes
 - **Backend**: FastAPI with MongoDB
 - **Design**: Warm earth tones (Terracotta, Sage, Cream, Sunny)
 - **Fonts**: Nunito (headings), DM Sans (body), Caveat (accents)
+- **Deployment**: Docker + Docker Compose
 
 ## What's Been Implemented (Feb 2, 2026)
 
@@ -35,6 +36,14 @@ Build a family app with: shared calendar, shopping list, task list, shared notes
 14. **Pantry Tracker** - Barcode scanner, expiry tracking
 15. **Meal Suggestions** - Rule-based matching recipes to pantry
 
+### Self-Hosting Features
+- **Dockerfile** - Multi-stage build for production
+- **docker-compose.yml** - Full stack with MongoDB
+- **Self-Hosted Server Config** - Mobile/web can connect to custom server
+- **PWA Support** - Add to Home Screen on mobile
+- **Health Check Endpoint** - For container orchestration
+- **Static File Serving** - Backend serves frontend in production
+
 ### Technical Implementation
 - Full CRUD APIs for all modules
 - MongoDB collections for all data
@@ -42,6 +51,32 @@ Build a family app with: shared calendar, shopping list, task list, shared notes
 - File upload for photos
 - @zxing/library for barcode scanning
 - Responsive mobile-first design
+- PWA manifest for mobile install
+
+## Deployment Instructions
+
+### Docker Deployment
+```bash
+# Clone repository
+git clone <repo-url>
+cd family-hub
+
+# Configure environment
+cp .env.example .env
+# Edit JWT_SECRET in .env
+
+# Start services
+docker-compose up -d
+
+# Access at http://localhost:8001
+```
+
+### Mobile App Setup
+1. Open app URL in mobile browser
+2. Tap "Self-Hosted Server" on login screen
+3. Enter your server URL
+4. Tap "Test Connection" to verify
+5. Save and login with PIN or account
 
 ## Backlog
 
