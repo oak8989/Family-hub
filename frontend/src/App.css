@@ -1,34 +1,230 @@
-.App-logo {
-    height: 40vmin;
-    pointer-events: none;
+/* Family Hub App Styles */
+
+/* Primary button */
+.btn-primary {
+    @apply rounded-full bg-terracotta text-white font-bold px-8 py-3 transition-all duration-200;
+    box-shadow: 0 4px 14px -3px rgba(224, 122, 95, 0.4);
 }
 
-@media (prefers-reduced-motion: no-preference) {
-    .App-logo {
-        animation: App-logo-spin infinite 20s linear;
+.btn-primary:hover {
+    @apply bg-terracotta-hover;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px -3px rgba(224, 122, 95, 0.5);
+}
+
+.btn-primary:active {
+    transform: scale(0.95);
+}
+
+/* Secondary button */
+.btn-secondary {
+    @apply rounded-full bg-sunny text-navy font-bold px-6 py-2 transition-all duration-200;
+}
+
+.btn-secondary:hover {
+    @apply bg-sunny-hover;
+}
+
+/* Ghost button */
+.btn-ghost {
+    @apply text-terracotta hover:bg-terracotta/10 rounded-xl px-4 py-2 transition-all duration-200;
+}
+
+/* Input styling */
+.input-cozy {
+    @apply bg-white/50 border-2 border-sage/30 focus:border-sage rounded-xl px-4 py-3 text-navy placeholder:text-navy/40 transition-all duration-200;
+}
+
+/* Card styling */
+.card-cozy {
+    @apply bg-warm-white rounded-3xl border border-sunny/50 p-6 transition-all duration-300;
+    box-shadow: 0 4px 20px -5px rgba(61, 64, 91, 0.08);
+}
+
+.card-cozy:hover {
+    box-shadow: 0 12px 40px -10px rgba(224, 122, 95, 0.2);
+    transform: translateY(-2px);
+}
+
+/* Navigation styles */
+.sidebar-link {
+    @apply flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 text-navy/70;
+}
+
+.sidebar-link:hover {
+    @apply bg-sunny/20 text-navy;
+}
+
+.sidebar-link.active {
+    @apply bg-terracotta text-white;
+}
+
+/* Badge styles */
+.badge-terracotta {
+    @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-terracotta/10 text-terracotta;
+}
+
+.badge-sage {
+    @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-sage/10 text-sage;
+}
+
+.badge-sunny {
+    @apply inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-sunny text-navy;
+}
+
+/* Mobile bottom navigation */
+.mobile-nav {
+    @apply fixed bottom-0 left-0 right-0 bg-warm-white/95 backdrop-blur-lg border-t border-sunny/30 z-50;
+}
+
+.mobile-nav-item {
+    @apply flex flex-col items-center gap-1 py-2 px-3 transition-all duration-200;
+}
+
+.mobile-nav-item.active {
+    @apply text-terracotta;
+}
+
+.mobile-nav-item.active .mobile-nav-icon {
+    @apply bg-terracotta/10;
+}
+
+/* Empty state */
+.empty-state {
+    @apply flex flex-col items-center justify-center py-12 text-center;
+}
+
+.empty-state-icon {
+    @apply w-24 h-24 mb-4 text-sunny;
+}
+
+.empty-state-title {
+    @apply text-xl font-heading font-bold text-navy mb-2;
+}
+
+.empty-state-text {
+    @apply text-navy-light mb-6 font-handwritten text-lg;
+}
+
+/* Loading spinner */
+.spinner {
+    @apply w-8 h-8 border-4 border-sunny border-t-terracotta rounded-full animate-spin;
+}
+
+/* Modal backdrop */
+.modal-backdrop {
+    @apply fixed inset-0 bg-navy/30 backdrop-blur-sm z-50;
+}
+
+/* Checkbox custom */
+.checkbox-cozy {
+    @apply w-5 h-5 rounded-lg border-2 border-sage/50 checked:bg-sage checked:border-sage transition-all duration-200;
+}
+
+/* Priority indicators */
+.priority-high {
+    @apply border-l-4 border-l-red-400;
+}
+
+.priority-medium {
+    @apply border-l-4 border-l-sunny;
+}
+
+.priority-low {
+    @apply border-l-4 border-l-sage;
+}
+
+/* Meal type colors */
+.meal-breakfast {
+    @apply bg-sunny/20 text-amber-700;
+}
+
+.meal-lunch {
+    @apply bg-sage/20 text-green-700;
+}
+
+.meal-dinner {
+    @apply bg-terracotta/20 text-terracotta;
+}
+
+.meal-snack {
+    @apply bg-purple-100 text-purple-700;
+}
+
+/* Photo grid */
+.photo-grid {
+    @apply grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4;
+}
+
+.photo-item {
+    @apply aspect-square rounded-2xl overflow-hidden cursor-pointer transition-all duration-300;
+}
+
+.photo-item:hover {
+    transform: scale(1.02);
+    box-shadow: 0 10px 30px -10px rgba(61, 64, 91, 0.2);
+}
+
+/* Barcode scanner */
+.scanner-overlay {
+    @apply fixed inset-0 bg-black/90 z-50 flex items-center justify-center;
+}
+
+.scanner-viewport {
+    @apply w-full max-w-md aspect-square rounded-2xl overflow-hidden relative;
+}
+
+.scanner-line {
+    @apply absolute left-0 right-0 h-0.5 bg-terracotta;
+    animation: scanLine 2s ease-in-out infinite;
+}
+
+@keyframes scanLine {
+    0%, 100% { top: 20%; }
+    50% { top: 80%; }
+}
+
+/* Budget chart colors */
+.chart-income {
+    fill: #81B29A;
+}
+
+.chart-expense {
+    fill: #E07A5F;
+}
+
+/* Message bubble */
+.message-bubble {
+    @apply max-w-[80%] rounded-2xl px-4 py-3;
+}
+
+.message-bubble.sent {
+    @apply bg-terracotta text-white rounded-br-sm ml-auto;
+}
+
+.message-bubble.received {
+    @apply bg-warm-white text-navy rounded-bl-sm mr-auto border border-sunny/30;
+}
+
+/* Calendar event dot */
+.event-dot {
+    @apply w-2 h-2 rounded-full;
+}
+
+/* Pantry category icons */
+.category-icon {
+    @apply w-10 h-10 rounded-xl flex items-center justify-center;
+}
+
+/* Responsive utilities */
+@media (max-width: 768px) {
+    .hide-mobile {
+        display: none !important;
     }
 }
 
-.App-header {
-    background-color: #0f0f10;
-    min-height: 100vh;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    font-size: calc(10px + 2vmin);
-    color: white;
-}
-
-.App-link {
-    color: #61dafb;
-}
-
-@keyframes App-logo-spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
+@media (min-width: 769px) {
+    .hide-desktop {
+        display: none !important;
     }
 }

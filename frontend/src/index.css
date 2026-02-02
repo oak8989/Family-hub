@@ -1,76 +1,60 @@
+@import '@fontsource/nunito/400.css';
+@import '@fontsource/nunito/700.css';
+@import '@fontsource/dm-sans/400.css';
+@import '@fontsource/dm-sans/500.css';
+@import '@fontsource/caveat/400.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+:root {
+    --terracotta: #E07A5F;
+    --sage: #81B29A;
+    --cream: #F4F1DE;
+    --warm-white: #FEFAE0;
+    --navy: #3D405B;
+    --navy-light: #6D6875;
+    --sunny: #F2CC8F;
+    --background: 48 33% 97%;
+    --foreground: 234 20% 30%;
+    --card: 50 60% 97%;
+    --card-foreground: 234 20% 30%;
+    --popover: 50 60% 97%;
+    --popover-foreground: 234 20% 30%;
+    --primary: 14 66% 63%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 152 32% 61%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 42 54% 76%;
+    --muted-foreground: 234 20% 40%;
+    --accent: 42 54% 76%;
+    --accent-foreground: 234 20% 30%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 42 54% 76%;
+    --input: 42 40% 85%;
+    --ring: 14 66% 63%;
+    --radius: 1rem;
+}
+
 body {
     margin: 0;
-    font-family:
-        -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen",
-        "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue",
-        sans-serif;
+    font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    background-color: var(--cream);
+    color: var(--navy);
 }
 
-code {
-    font-family:
-        source-code-pro, Menlo, Monaco, Consolas, "Courier New", monospace;
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Nunito', sans-serif;
+    font-weight: 700;
+    color: var(--navy);
 }
 
-@layer base {
-    :root {
-        --background: 0 0% 100%;
-        --foreground: 0 0% 3.9%;
-        --card: 0 0% 100%;
-        --card-foreground: 0 0% 3.9%;
-        --popover: 0 0% 100%;
-        --popover-foreground: 0 0% 3.9%;
-        --primary: 0 0% 9%;
-        --primary-foreground: 0 0% 98%;
-        --secondary: 0 0% 96.1%;
-        --secondary-foreground: 0 0% 9%;
-        --muted: 0 0% 96.1%;
-        --muted-foreground: 0 0% 45.1%;
-        --accent: 0 0% 96.1%;
-        --accent-foreground: 0 0% 9%;
-        --destructive: 0 84.2% 60.2%;
-        --destructive-foreground: 0 0% 98%;
-        --border: 0 0% 89.8%;
-        --input: 0 0% 89.8%;
-        --ring: 0 0% 3.9%;
-        --chart-1: 12 76% 61%;
-        --chart-2: 173 58% 39%;
-        --chart-3: 197 37% 24%;
-        --chart-4: 43 74% 66%;
-        --chart-5: 27 87% 67%;
-        --radius: 0.5rem;
-    }
-    .dark {
-        --background: 0 0% 3.9%;
-        --foreground: 0 0% 98%;
-        --card: 0 0% 3.9%;
-        --card-foreground: 0 0% 98%;
-        --popover: 0 0% 3.9%;
-        --popover-foreground: 0 0% 98%;
-        --primary: 0 0% 98%;
-        --primary-foreground: 0 0% 9%;
-        --secondary: 0 0% 14.9%;
-        --secondary-foreground: 0 0% 98%;
-        --muted: 0 0% 14.9%;
-        --muted-foreground: 0 0% 63.9%;
-        --accent: 0 0% 14.9%;
-        --accent-foreground: 0 0% 98%;
-        --destructive: 0 62.8% 30.6%;
-        --destructive-foreground: 0 0% 98%;
-        --border: 0 0% 14.9%;
-        --input: 0 0% 14.9%;
-        --ring: 0 0% 83.1%;
-        --chart-1: 220 70% 50%;
-        --chart-2: 160 60% 45%;
-        --chart-3: 30 80% 55%;
-        --chart-4: 280 65% 60%;
-        --chart-5: 340 75% 55%;
-    }
+.font-handwritten {
+    font-family: 'Caveat', cursive;
 }
 
 @layer base {
@@ -78,38 +62,153 @@ code {
         @apply border-border;
     }
     body {
-        @apply bg-background text-foreground;
+        @apply bg-[#F4F1DE] text-[#3D405B];
     }
 }
 
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--cream);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--sunny);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--terracotta);
+}
+
+/* Button animations */
+.btn-bounce:active {
+    transform: scale(0.95);
+}
+
+/* Card hover effect */
+.card-hover {
+    transition: all 0.3s ease;
+}
+
+.card-hover:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px -10px rgba(224, 122, 95, 0.25);
+}
+
+/* Paper texture overlay */
+.paper-texture {
+    position: relative;
+}
+
+.paper-texture::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%' height='100%' filter='url(%23noise)'/%3E%3C/svg%3E");
+    opacity: 0.03;
+    pointer-events: none;
+    border-radius: inherit;
+}
+
+/* Navigation pill styles */
+.nav-pill {
+    @apply px-4 py-2 rounded-xl transition-all duration-200;
+}
+
+.nav-pill.active {
+    @apply bg-[#E07A5F] text-white shadow-md;
+}
+
+.nav-pill:not(.active):hover {
+    @apply bg-[#F2CC8F]/30;
+}
+
+/* Input focus styles */
+input:focus, textarea:focus, select:focus {
+    outline: none;
+    border-color: var(--sage) !important;
+    box-shadow: 0 0 0 3px rgba(129, 178, 154, 0.2);
+}
+
+/* Bento grid layout */
+.bento-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+    .bento-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+@media (max-width: 640px) {
+    .bento-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Module card styles */
+.module-card {
+    @apply bg-[#FEFAE0] rounded-3xl border border-[#F2CC8F]/50 p-6 transition-all duration-300;
+    box-shadow: 0 4px 20px -5px rgba(61, 64, 91, 0.08);
+}
+
+.module-card:hover {
+    box-shadow: 0 10px 40px -10px rgba(224, 122, 95, 0.2);
+    transform: translateY(-2px);
+}
+
+/* Glass morphism */
+.glass {
+    background: rgba(254, 250, 224, 0.8);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+/* Staggered animations */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.animate-fade-in-up {
+    animation: fadeInUp 0.5s ease-out forwards;
+}
+
+.delay-100 { animation-delay: 0.1s; }
+.delay-200 { animation-delay: 0.2s; }
+.delay-300 { animation-delay: 0.3s; }
+.delay-400 { animation-delay: 0.4s; }
+
+/* Calendar custom styles */
+.rdp {
+    --rdp-cell-size: 40px;
+    --rdp-accent-color: #E07A5F;
+    --rdp-background-color: #F2CC8F;
+}
+
+.rdp-day_selected {
+    background-color: var(--terracotta) !important;
+    color: white !important;
+}
+
+/* Debug wrapper */
 @layer base {
     [data-debug-wrapper="true"] {
         display: contents !important;
-    }
-
-    [data-debug-wrapper="true"] > * {
-        margin-left: inherit;
-        margin-right: inherit;
-        margin-top: inherit;
-        margin-bottom: inherit;
-        padding-left: inherit;
-        padding-right: inherit;
-        padding-top: inherit;
-        padding-bottom: inherit;
-        column-gap: inherit;
-        row-gap: inherit;
-        gap: inherit;
-        border-left-width: inherit;
-        border-right-width: inherit;
-        border-top-width: inherit;
-        border-bottom-width: inherit;
-        border-left-style: inherit;
-        border-right-style: inherit;
-        border-top-style: inherit;
-        border-bottom-style: inherit;
-        border-left-color: inherit;
-        border-right-color: inherit;
-        border-top-color: inherit;
-        border-bottom-color: inherit;
     }
 }

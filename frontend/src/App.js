@@ -1,53 +1,75 @@
-import { useEffect } from "react";
-import "@/App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
-import axios from "axios";
+import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import { Toaster } from './components/ui/sonner';
+import AuthPage from './pages/AuthPage';
+import Dashboard from './pages/Dashboard';
+import CalendarPage from './pages/CalendarPage';
+import ShoppingPage from './pages/ShoppingPage';
+import TasksPage from './pages/TasksPage';
+import NotesPage from './pages/NotesPage';
+import MessagesPage from './pages/MessagesPage';
+import BudgetPage from './pages/BudgetPage';
+import MealPlannerPage from './pages/MealPlannerPage';
+import RecipesPage from './pages/RecipesPage';
+import GroceryPage from './pages/GroceryPage';
+import ContactsPage from './pages/ContactsPage';
+import PhotosPage from './pages/PhotosPage';
+import PantryPage from './pages/PantryPage';
+import SuggestionsPage from './pages/SuggestionsPage';
+import Layout from './components/Layout';
+import './App.css';
 
-const BACKEND_URL = process.env.REACT_APP_BACKEND_URL;
-const API = `${BACKEND_URL}/api`;
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated, loading } = useAuth();
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-cream flex items-center justify-center">
+        <div className="spinner" />
+      </div>
+    );
+  }
+  
+  if (!isAuthenticated) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return children;
+};
 
-const Home = () => {
-  const helloWorldApi = async () => {
-    try {
-      const response = await axios.get(`${API}/`);
-      console.log(response.data.message);
-    } catch (e) {
-      console.error(e, `errored out requesting / api`);
-    }
-  };
-
-  useEffect(() => {
-    helloWorldApi();
-  }, []);
+const AppRoutes = () => {
+  const { isAuthenticated } = useAuth();
 
   return (
-    <div>
-      <header className="App-header">
-        <a
-          className="App-link"
-          href="https://emergent.sh"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <img src="https://avatars.githubusercontent.com/in/1201222?s=120&u=2686cf91179bbafbc7a71bfbc43004cf9ae1acea&v=4" />
-        </a>
-        <p className="mt-5">Building something incredible ~!</p>
-      </header>
-    </div>
+    <Routes>
+      <Route path="/" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <AuthPage />} />
+      <Route path="/dashboard" element={<ProtectedRoute><Layout><Dashboard /></Layout></ProtectedRoute>} />
+      <Route path="/calendar" element={<ProtectedRoute><Layout><CalendarPage /></Layout></ProtectedRoute>} />
+      <Route path="/shopping" element={<ProtectedRoute><Layout><ShoppingPage /></Layout></ProtectedRoute>} />
+      <Route path="/tasks" element={<ProtectedRoute><Layout><TasksPage /></Layout></ProtectedRoute>} />
+      <Route path="/notes" element={<ProtectedRoute><Layout><NotesPage /></Layout></ProtectedRoute>} />
+      <Route path="/messages" element={<ProtectedRoute><Layout><MessagesPage /></Layout></ProtectedRoute>} />
+      <Route path="/budget" element={<ProtectedRoute><Layout><BudgetPage /></Layout></ProtectedRoute>} />
+      <Route path="/meals" element={<ProtectedRoute><Layout><MealPlannerPage /></Layout></ProtectedRoute>} />
+      <Route path="/recipes" element={<ProtectedRoute><Layout><RecipesPage /></Layout></ProtectedRoute>} />
+      <Route path="/grocery" element={<ProtectedRoute><Layout><GroceryPage /></Layout></ProtectedRoute>} />
+      <Route path="/contacts" element={<ProtectedRoute><Layout><ContactsPage /></Layout></ProtectedRoute>} />
+      <Route path="/photos" element={<ProtectedRoute><Layout><PhotosPage /></Layout></ProtectedRoute>} />
+      <Route path="/pantry" element={<ProtectedRoute><Layout><PantryPage /></Layout></ProtectedRoute>} />
+      <Route path="/suggestions" element={<ProtectedRoute><Layout><SuggestionsPage /></Layout></ProtectedRoute>} />
+    </Routes>
   );
 };
 
 function App() {
   return (
-    <div className="App">
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Home />}>
-            <Route index element={<Home />} />
-          </Route>
-        </Routes>
-      </BrowserRouter>
-    </div>
+    <BrowserRouter>
+      <AuthProvider>
+        <AppRoutes />
+        <Toaster position="top-right" richColors />
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 
