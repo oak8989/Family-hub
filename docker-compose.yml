@@ -5,7 +5,10 @@ services:
   # Family Hub Application
   # ==========================================================================
   family-hub:
-    build: .
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: family-hub:latest
     container_name: family-hub
     restart: unless-stopped
     ports:
