@@ -112,18 +112,28 @@ const BudgetPage = () => {
               <DialogTitle className="font-heading text-navy">Add Budget Entry</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <Tabs value={form.type} onValueChange={(v) => setForm({ ...form, type: v, category: '' })}>
-                <TabsList className="grid w-full grid-cols-2 bg-cream">
-                  <TabsTrigger value="income" className="data-[state=active]:bg-green-500 data-[state=active]:text-white">
-                    <TrendingUp className="w-4 h-4 mr-2" />
-                    Income
-                  </TabsTrigger>
-                  <TabsTrigger value="expense" className="data-[state=active]:bg-terracotta data-[state=active]:text-white">
-                    <TrendingDown className="w-4 h-4 mr-2" />
-                    Expense
-                  </TabsTrigger>
-                </TabsList>
-              </Tabs>
+              <div className="grid grid-cols-2 gap-2 p-1 bg-cream rounded-lg">
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, type: 'income', category: '' })}
+                  className={`flex items-center justify-center gap-2 py-2 px-4 rounded-md font-medium transition-colors ${
+                    form.type === 'income' ? 'bg-green-500 text-white' : 'text-navy-light hover:bg-sunny/30'
+                  }`}
+                >
+                  <TrendingUp className="w-4 h-4" />
+                  Income
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setForm({ ...form, type: 'expense', category: '' })}
+                  className={`flex items-center justify-center gap-2 py-2 px-4 rounded-md font-medium transition-colors ${
+                    form.type === 'expense' ? 'bg-terracotta text-white' : 'text-navy-light hover:bg-sunny/30'
+                  }`}
+                >
+                  <TrendingDown className="w-4 h-4" />
+                  Expense
+                </button>
+              </div>
               
               <div>
                 <label className="block text-sm font-medium text-navy mb-2">Description</label>
