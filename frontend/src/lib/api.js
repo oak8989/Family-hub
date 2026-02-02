@@ -1,13 +1,44 @@
 import axios from 'axios';
 
-const API_URL = process.env.REACT_APP_BACKEND_URL + '/api';
+// Get API URL - check localStorage for custom server first, then fallback to env
+const getApiUrl = () => {
+  const customServer = localStorage.getItem('customServerUrl');
+  if (customServer) {
+    return customServer + '/api';
+  }
+  return process.env.REACT_APP_BACKEND_URL + '/api';
+};
 
 const api = axios.create({
-  baseURL: API_URL,
+  baseURL: getApiUrl(),
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+// Update baseURL when custom server changes
+export const setCustomServer = (url) => {
+  if (url) {
+    localStorage.setItem('customServerUrl', url);
+    api.defaults.baseURL = url + '/api';
+  } else {
+    localStorage.removeItem('customServerUrl');
+    api.defaults.baseURL = process.env.REACT_APP_BACKEND_URL + '/api';
+  }
+};
+
+export const getCustomServer = () => {
+  return localStorage.getItem('customServerUrl') || '';
+};
+
+export const testServerConnection = async (url) => {
+  try {
+    const response = await axios.get(url + '/api/health', { timeout: 5000 });
+    return response.data?.status === 'healthy';
+  } catch {
+    return false;
+  }
+};
 
 // Add auth token to requests
 api.interceptors.request.use((config) => {
