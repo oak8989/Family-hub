@@ -14,17 +14,24 @@ WORKDIR /app/frontend
 COPY frontend/package.json frontend/yarn.lock ./
 RUN yarn install --frozen-lockfile --network-timeout 100000
 
-# Copy frontend source and build
+# Copy frontend source
 COPY frontend/ ./
 
-# Set production API URL (will be same origin in production)
+# Build with empty backend URL (same-origin in production)
 ENV REACT_APP_BACKEND_URL=""
+ENV NODE_ENV=production
+ENV CI=false
+
 RUN yarn build
+
+# Verify build output
+RUN ls -la /app/frontend/build/ && \
+    test -f /app/frontend/build/index.html || (echo "Build failed - no index.html" && exit 1)
 
 # -----------------------------------------------------------------------------
 # Stage 2: Production Image
 # -----------------------------------------------------------------------------
-FROM python:3.11-slim
+FROM python:3.11-slim AS production
 
 LABEL org.opencontainers.image.title="Family Hub"
 LABEL org.opencontainers.image.description="Self-hosted family organization app"
@@ -52,6 +59,10 @@ COPY backend/ ./backend/
 # Copy frontend build from builder stage
 COPY --from=frontend-builder /app/frontend/build ./frontend/build
 
+# Verify frontend was copied
+RUN ls -la /app/frontend/build/ && \
+    test -f /app/frontend/build/index.html || (echo "Frontend build missing" && exit 1)
+
 # Create directories for data persistence
 RUN mkdir -p /app/backend/photos /app/data \
     && chown -R appuser:appuser /app
@@ -70,8 +81,8 @@ ENV MONGO_URL=mongodb://mongo:27017 \
 EXPOSE 8001
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
     CMD curl -f http://localhost:8001/api/health || exit 1
 
 # Start the application
-CMD ["sh", "-c", "uvicorn backend.server:app --host 0.0.0.0 --port ${PORT}"]
+CMD ["python", "-m", "uvicorn", "backend.server:app", "--host", "0.0.0.0", "--port", "8001"]
