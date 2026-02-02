@@ -740,8 +740,17 @@ logger = logging.getLogger(__name__)
 
 # Serve static frontend files in production (Docker)
 if FRONTEND_BUILD_DIR.exists():
-    app.mount("/static", StaticFiles(directory=FRONTEND_BUILD_DIR / "static"), name="static")
+    # Mount static assets
+    static_dir = FRONTEND_BUILD_DIR / "static"
+    if static_dir.exists():
+        app.mount("/static", StaticFiles(directory=static_dir), name="static")
     
+    # Serve index.html for root
+    @app.get("/")
+    async def serve_root():
+        return FileResponse(FRONTEND_BUILD_DIR / "index.html")
+    
+    # Catch-all route for SPA - must be last
     @app.get("/{full_path:path}")
     async def serve_frontend(full_path: str):
         # Don't serve frontend for API routes
