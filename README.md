@@ -2,6 +2,7 @@
 
 <p align="center">
   <img src="https://img.shields.io/badge/Docker-Ready-blue?logo=docker" alt="Docker Ready">
+  <img src="https://img.shields.io/badge/Android-APK-green?logo=android" alt="Android APK">
   <img src="https://img.shields.io/badge/Self--Hosted-Yes-green" alt="Self-Hosted">
   <img src="https://img.shields.io/badge/License-MIT-yellow" alt="MIT License">
   <img src="https://img.shields.io/github/v/release/yourusername/family-hub?include_prereleases" alt="Release">
@@ -13,6 +14,14 @@
 </p>
 
 ---
+
+## 📥 Download
+
+| Platform | Download |
+|----------|----------|
+| 🌐 **Web/PWA** | [Self-host with Docker](#-quick-start) |
+| 🤖 **Android** | [Download APK](https://github.com/yourusername/family-hub/releases/latest) |
+| 🍎 **iOS** | Use Safari "Add to Home Screen" |
 
 ## ✨ Features
 
