@@ -1,14 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { toast } from 'sonner';
-import { Home, User, Lock, Mail, Users, KeyRound, ArrowRight, Sparkles } from 'lucide-react';
+import { Home, User, Lock, Mail, Users, KeyRound, ArrowRight, Sparkles, Server, Check, X, Wifi } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
+import { setCustomServer, getCustomServer, testServerConnection } from '../lib/api';
 
 const AuthPage = () => {
   const { login, pinLogin, register, createFamily } = useAuth();
-  const [mode, setMode] = useState('pin'); // pin, login, register, setup
+  const [mode, setMode] = useState('pin'); // pin, login, register, setup, server
   const [loading, setLoading] = useState(false);
   
   // Form states
@@ -18,6 +19,44 @@ const AuthPage = () => {
   const [name, setName] = useState('');
   const [familyName, setFamilyName] = useState('');
   const [familyPin, setFamilyPin] = useState('');
+  
+  // Server config states
+  const [serverUrl, setServerUrl] = useState('');
+  const [serverConnected, setServerConnected] = useState(null);
+  const [testingServer, setTestingServer] = useState(false);
+
+  useEffect(() => {
+    const savedServer = getCustomServer();
+    if (savedServer) {
+      setServerUrl(savedServer);
+      testServer(savedServer);
+    }
+  }, []);
+
+  const testServer = async (url) => {
+    if (!url) {
+      setServerConnected(null);
+      return;
+    }
+    setTestingServer(true);
+    const connected = await testServerConnection(url);
+    setServerConnected(connected);
+    setTestingServer(false);
+  };
+
+  const handleSaveServer = () => {
+    if (serverUrl && !serverConnected) {
+      toast.error('Server connection failed. Please check the URL.');
+      return;
+    }
+    setCustomServer(serverUrl || null);
+    if (serverUrl) {
+      toast.success('Server configured successfully!');
+    } else {
+      toast.success('Using default server');
+    }
+    setMode('pin');
+  };
 
   const handlePinLogin = async (e) => {
     e.preventDefault();
@@ -113,246 +152,357 @@ const AuthPage = () => {
 
           {/* Auth Card */}
           <div className="card-cozy">
-            <Tabs value={mode} onValueChange={setMode} className="w-full">
-              <TabsList className="grid w-full grid-cols-2 bg-cream rounded-xl p-1 mb-6">
-                <TabsTrigger
-                  value="pin"
-                  className="rounded-lg data-[state=active]:bg-terracotta data-[state=active]:text-white"
-                  data-testid="pin-tab"
-                >
-                  <KeyRound className="w-4 h-4 mr-2" />
-                  Family PIN
-                </TabsTrigger>
-                <TabsTrigger
-                  value="login"
-                  className="rounded-lg data-[state=active]:bg-terracotta data-[state=active]:text-white"
-                  data-testid="login-tab"
-                >
-                  <User className="w-4 h-4 mr-2" />
-                  Account
-                </TabsTrigger>
-              </TabsList>
-
-              {/* PIN Login */}
-              <TabsContent value="pin">
-                <form onSubmit={handlePinLogin} className="space-y-6">
-                  <div>
-                    <label className="block text-sm font-medium text-navy mb-2">
-                      Enter Family PIN
-                    </label>
+            {mode === 'server' ? (
+              /* Server Configuration */
+              <div className="space-y-6">
+                <div className="text-center">
+                  <div className="inline-flex items-center justify-center w-12 h-12 bg-sage/20 rounded-xl mb-3">
+                    <Server className="w-6 h-6 text-sage" />
+                  </div>
+                  <h2 className="text-xl font-heading font-bold text-navy">Self-Hosted Server</h2>
+                  <p className="text-sm text-navy-light mt-1">Connect to your own Family Hub server</p>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-navy mb-2">Server URL</label>
+                  <div className="relative">
                     <Input
-                      type="password"
-                      value={pin}
-                      onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
-                      placeholder="••••"
-                      maxLength={6}
-                      className="input-cozy text-center text-2xl tracking-widest"
-                      data-testid="pin-input"
+                      value={serverUrl}
+                      onChange={(e) => {
+                        setServerUrl(e.target.value);
+                        setServerConnected(null);
+                      }}
+                      placeholder="https://family.yourdomain.com"
+                      className="input-cozy pr-10"
+                      data-testid="server-url-input"
                     />
-                    <p className="text-sm text-navy-light mt-2 text-center font-handwritten">
-                      Ask a family member for the PIN!
-                    </p>
+                    {serverConnected !== null && (
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        {serverConnected ? (
+                          <Check className="w-5 h-5 text-green-500" />
+                        ) : (
+                          <X className="w-5 h-5 text-red-500" />
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <Button
-                    type="submit"
-                    disabled={loading || pin.length < 4}
-                    className="btn-primary w-full"
-                    data-testid="pin-submit"
-                  >
-                    {loading ? 'Entering...' : 'Enter Home'}
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </form>
-              </TabsContent>
-
-              {/* Account Login */}
-              <TabsContent value="login">
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-navy mb-2">Email</label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-navy-light" />
-                      <Input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="you@example.com"
-                        className="input-cozy pl-10"
-                        data-testid="login-email"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-navy mb-2">Password</label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-navy-light" />
-                      <Input
-                        type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="••••••••"
-                        className="input-cozy pl-10"
-                        data-testid="login-password"
-                      />
-                    </div>
-                  </div>
-                  <Button
-                    type="submit"
-                    disabled={loading}
-                    className="btn-primary w-full"
-                    data-testid="login-submit"
-                  >
-                    {loading ? 'Logging in...' : 'Sign In'}
-                    <ArrowRight className="w-4 h-4 ml-2" />
-                  </Button>
-                </form>
-
-                <div className="mt-6 pt-6 border-t border-sunny/30">
-                  <p className="text-center text-navy-light text-sm">
-                    New here?{' '}
-                    <button
-                      onClick={() => setMode('register')}
-                      className="text-terracotta font-medium hover:underline"
-                      data-testid="goto-register"
-                    >
-                      Create an account
-                    </button>
+                  <p className="text-xs text-navy-light mt-2">
+                    Leave empty to use the default server
                   </p>
                 </div>
-              </TabsContent>
+                
+                <Button
+                  onClick={() => testServer(serverUrl)}
+                  disabled={!serverUrl || testingServer}
+                  variant="outline"
+                  className="w-full border-sage text-sage hover:bg-sage/10"
+                  data-testid="test-server-btn"
+                >
+                  {testingServer ? (
+                    <>
+                      <div className="w-4 h-4 border-2 border-sage border-t-transparent rounded-full animate-spin mr-2" />
+                      Testing...
+                    </>
+                  ) : (
+                    <>
+                      <Wifi className="w-4 h-4 mr-2" />
+                      Test Connection
+                    </>
+                  )}
+                </Button>
+                
+                {serverConnected === false && (
+                  <div className="bg-red-50 border border-red-200 rounded-xl p-3 text-sm text-red-600">
+                    Could not connect to server. Please check the URL and ensure the server is running.
+                  </div>
+                )}
+                
+                {serverConnected === true && (
+                  <div className="bg-green-50 border border-green-200 rounded-xl p-3 text-sm text-green-600 flex items-center gap-2">
+                    <Check className="w-4 h-4" />
+                    Server connected successfully!
+                  </div>
+                )}
+                
+                <div className="flex gap-3">
+                  <Button
+                    onClick={handleSaveServer}
+                    className="btn-primary flex-1"
+                    data-testid="save-server-btn"
+                  >
+                    Save & Continue
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setMode('pin')}
+                    className="border-sunny"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Tabs value={mode} onValueChange={setMode} className="w-full">
+                <TabsList className="grid w-full grid-cols-2 bg-cream rounded-xl p-1 mb-6">
+                  <TabsTrigger
+                    value="pin"
+                    className="rounded-lg data-[state=active]:bg-terracotta data-[state=active]:text-white"
+                    data-testid="pin-tab"
+                  >
+                    <KeyRound className="w-4 h-4 mr-2" />
+                    Family PIN
+                  </TabsTrigger>
+                  <TabsTrigger
+                    value="login"
+                    className="rounded-lg data-[state=active]:bg-terracotta data-[state=active]:text-white"
+                    data-testid="login-tab"
+                  >
+                    <User className="w-4 h-4 mr-2" />
+                    Account
+                  </TabsTrigger>
+                </TabsList>
 
-              {/* Register */}
-              <TabsContent value="register">
-                <form onSubmit={handleRegister} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-navy mb-2">Your Name</label>
-                    <div className="relative">
-                      <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-navy-light" />
+                {/* PIN Login */}
+                <TabsContent value="pin">
+                  <form onSubmit={handlePinLogin} className="space-y-6">
+                    <div>
+                      <label className="block text-sm font-medium text-navy mb-2">
+                        Enter Family PIN
+                      </label>
+                      <Input
+                        type="password"
+                        value={pin}
+                        onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+                        placeholder="••••"
+                        maxLength={6}
+                        className="input-cozy text-center text-2xl tracking-widest"
+                        data-testid="pin-input"
+                      />
+                      <p className="text-sm text-navy-light mt-2 text-center font-handwritten">
+                        Ask a family member for the PIN!
+                      </p>
+                    </div>
+                    <Button
+                      type="submit"
+                      disabled={loading || pin.length < 4}
+                      className="btn-primary w-full"
+                      data-testid="pin-submit"
+                    >
+                      {loading ? 'Entering...' : 'Enter Home'}
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                  </form>
+                </TabsContent>
+
+                {/* Account Login */}
+                <TabsContent value="login">
+                  <form onSubmit={handleLogin} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-navy mb-2">Email</label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-navy-light" />
+                        <Input
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="you@example.com"
+                          className="input-cozy pl-10"
+                          data-testid="login-email"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-navy mb-2">Password</label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-navy-light" />
+                        <Input
+                          type="password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="••••••••"
+                          className="input-cozy pl-10"
+                          data-testid="login-password"
+                        />
+                      </div>
+                    </div>
+                    <Button
+                      type="submit"
+                      disabled={loading}
+                      className="btn-primary w-full"
+                      data-testid="login-submit"
+                    >
+                      {loading ? 'Logging in...' : 'Sign In'}
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </Button>
+                  </form>
+
+                  <div className="mt-6 pt-6 border-t border-sunny/30">
+                    <p className="text-center text-navy-light text-sm">
+                      New here?{' '}
+                      <button
+                        onClick={() => setMode('register')}
+                        className="text-terracotta font-medium hover:underline"
+                        data-testid="goto-register"
+                      >
+                        Create an account
+                      </button>
+                    </p>
+                  </div>
+                </TabsContent>
+
+                {/* Register */}
+                <TabsContent value="register">
+                  <form onSubmit={handleRegister} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-navy mb-2">Your Name</label>
+                      <div className="relative">
+                        <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-navy-light" />
+                        <Input
+                          type="text"
+                          value={name}
+                          onChange={(e) => setName(e.target.value)}
+                          placeholder="John Doe"
+                          className="input-cozy pl-10"
+                          data-testid="register-name"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-navy mb-2">Email</label>
+                      <div className="relative">
+                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-navy-light" />
+                        <Input
+                          type="email"
+                          value={email}
+                          onChange={(e) => setEmail(e.target.value)}
+                          placeholder="you@example.com"
+                          className="input-cozy pl-10"
+                          data-testid="register-email"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-navy mb-2">Password</label>
+                      <div className="relative">
+                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-navy-light" />
+                        <Input
+                          type="password"
+                          value={password}
+                          onChange={(e) => setPassword(e.target.value)}
+                          placeholder="••••••••"
+                          className="input-cozy pl-10"
+                          data-testid="register-password"
+                        />
+                      </div>
+                    </div>
+                    <Button
+                      type="submit"
+                      disabled={loading}
+                      className="btn-primary w-full"
+                      data-testid="register-submit"
+                    >
+                      {loading ? 'Creating...' : 'Create Account'}
+                      <Sparkles className="w-4 h-4 ml-2" />
+                    </Button>
+                  </form>
+
+                  <div className="mt-6 pt-6 border-t border-sunny/30">
+                    <p className="text-center text-navy-light text-sm">
+                      Already have an account?{' '}
+                      <button
+                        onClick={() => setMode('login')}
+                        className="text-terracotta font-medium hover:underline"
+                        data-testid="goto-login"
+                      >
+                        Sign in
+                      </button>
+                    </p>
+                  </div>
+                </TabsContent>
+
+                {/* Setup Family */}
+                <TabsContent value="setup">
+                  <form onSubmit={handleSetupFamily} className="space-y-4">
+                    <div className="bg-sage/10 rounded-xl p-4 mb-4">
+                      <p className="text-sage text-sm flex items-center gap-2">
+                        <Users className="w-4 h-4" />
+                        Create your family hub and invite members with a shared PIN
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-navy mb-2">Family Name</label>
                       <Input
                         type="text"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        placeholder="John Doe"
-                        className="input-cozy pl-10"
-                        data-testid="register-name"
+                        value={familyName}
+                        onChange={(e) => setFamilyName(e.target.value)}
+                        placeholder="The Smiths"
+                        className="input-cozy"
+                        data-testid="family-name"
                       />
                     </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-navy mb-2">Email</label>
-                    <div className="relative">
-                      <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-navy-light" />
-                      <Input
-                        type="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="you@example.com"
-                        className="input-cozy pl-10"
-                        data-testid="register-email"
-                      />
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-navy mb-2">Password</label>
-                    <div className="relative">
-                      <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-navy-light" />
+                    <div>
+                      <label className="block text-sm font-medium text-navy mb-2">Family PIN</label>
                       <Input
                         type="password"
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="••••••••"
-                        className="input-cozy pl-10"
-                        data-testid="register-password"
+                        value={familyPin}
+                        onChange={(e) => setFamilyPin(e.target.value.replace(/\D/g, ''))}
+                        placeholder="••••"
+                        maxLength={6}
+                        className="input-cozy"
+                        data-testid="family-pin"
                       />
+                      <p className="text-xs text-navy-light mt-1">
+                        Share this PIN with family members for easy access
+                      </p>
                     </div>
-                  </div>
-                  <Button
-                    type="submit"
-                    disabled={loading}
-                    className="btn-primary w-full"
-                    data-testid="register-submit"
-                  >
-                    {loading ? 'Creating...' : 'Create Account'}
-                    <Sparkles className="w-4 h-4 ml-2" />
-                  </Button>
-                </form>
-
-                <div className="mt-6 pt-6 border-t border-sunny/30">
-                  <p className="text-center text-navy-light text-sm">
-                    Already have an account?{' '}
-                    <button
-                      onClick={() => setMode('login')}
-                      className="text-terracotta font-medium hover:underline"
-                      data-testid="goto-login"
+                    <Button
+                      type="submit"
+                      disabled={loading}
+                      className="btn-primary w-full"
+                      data-testid="setup-submit"
                     >
-                      Sign in
-                    </button>
-                  </p>
-                </div>
-              </TabsContent>
-
-              {/* Setup Family */}
-              <TabsContent value="setup">
-                <form onSubmit={handleSetupFamily} className="space-y-4">
-                  <div className="bg-sage/10 rounded-xl p-4 mb-4">
-                    <p className="text-sage text-sm flex items-center gap-2">
-                      <Users className="w-4 h-4" />
-                      Create your family hub and invite members with a shared PIN
-                    </p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-navy mb-2">Family Name</label>
-                    <Input
-                      type="text"
-                      value={familyName}
-                      onChange={(e) => setFamilyName(e.target.value)}
-                      placeholder="The Smiths"
-                      className="input-cozy"
-                      data-testid="family-name"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-navy mb-2">Family PIN</label>
-                    <Input
-                      type="password"
-                      value={familyPin}
-                      onChange={(e) => setFamilyPin(e.target.value.replace(/\D/g, ''))}
-                      placeholder="••••"
-                      maxLength={6}
-                      className="input-cozy"
-                      data-testid="family-pin"
-                    />
-                    <p className="text-xs text-navy-light mt-1">
-                      Share this PIN with family members for easy access
-                    </p>
-                  </div>
-                  <Button
-                    type="submit"
-                    disabled={loading}
-                    className="btn-primary w-full"
-                    data-testid="setup-submit"
-                  >
-                    {loading ? 'Setting up...' : 'Create Family Hub'}
-                    <Home className="w-4 h-4 ml-2" />
-                  </Button>
-                </form>
-              </TabsContent>
-            </Tabs>
+                      {loading ? 'Setting up...' : 'Create Family Hub'}
+                      <Home className="w-4 h-4 ml-2" />
+                    </Button>
+                  </form>
+                </TabsContent>
+              </Tabs>
+            )}
           </div>
 
-          {/* Setup CTA for new accounts */}
-          {mode === 'login' && (
-            <div className="mt-6 text-center">
-              <button
-                onClick={() => setMode('setup')}
-                className="text-sm text-navy-light hover:text-terracotta transition-colors"
-                data-testid="goto-setup"
-              >
-                <Users className="w-4 h-4 inline mr-1" />
-                Want to create a new family hub?
-              </button>
-            </div>
-          )}
+          {/* Bottom links */}
+          <div className="mt-6 space-y-3">
+            {mode === 'login' && (
+              <div className="text-center">
+                <button
+                  onClick={() => setMode('setup')}
+                  className="text-sm text-navy-light hover:text-terracotta transition-colors"
+                  data-testid="goto-setup"
+                >
+                  <Users className="w-4 h-4 inline mr-1" />
+                  Want to create a new family hub?
+                </button>
+              </div>
+            )}
+            
+            {mode !== 'server' && (
+              <div className="text-center">
+                <button
+                  onClick={() => setMode('server')}
+                  className="text-sm text-navy-light hover:text-sage transition-colors flex items-center justify-center gap-2 mx-auto"
+                  data-testid="goto-server-config"
+                >
+                  <Server className="w-4 h-4" />
+                  {getCustomServer() ? 'Change Server' : 'Self-Hosted Server'}
+                </button>
+                {getCustomServer() && (
+                  <p className="text-xs text-sage mt-1">
+                    Connected to: {getCustomServer()}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </div>
