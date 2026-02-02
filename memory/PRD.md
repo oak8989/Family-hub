@@ -95,12 +95,19 @@ docker-compose up -d
 - None remaining
 
 ### P1 (Important)
+- Budget visualization charts (Recharts)
 - Real-time WebSocket for messages
 - Push notifications
 - Data export/backup
 
 ### P2 (Nice to Have)
+- Gamified "Family Chore Chart" with reward points
+- QR code for mobile server configuration
+- Live demo link in README
 - Recipe import from URL
 - Shared grocery list sync
 - Family member roles/permissions
 - Dark mode toggle
+
+## Refactoring Notes
+- `/app/backend/server.py` is monolithic (750+ lines) - should be broken into feature-specific routers
