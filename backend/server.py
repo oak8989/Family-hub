@@ -1,5 +1,7 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File, Form
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi.staticfiles import StaticFiles
+from fastapi.responses import FileResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from starlette.responses import StreamingResponse
@@ -17,6 +19,9 @@ import io
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
+
+# Frontend build directory (for Docker deployment)
+FRONTEND_BUILD_DIR = ROOT_DIR.parent / 'frontend' / 'build'
 
 # MongoDB connection
 mongo_url = os.environ['MONGO_URL']
