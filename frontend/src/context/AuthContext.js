@@ -16,10 +16,26 @@ export const AuthProvider = ({ children }) => {
     if (token && storedUser) {
       setUser(JSON.parse(storedUser));
       setIsAuthenticated(true);
-      loadFamily();
+      loadUserData();
     }
     setLoading(false);
   }, []);
+
+  const loadUserData = async () => {
+    try {
+      const [userRes, familyRes] = await Promise.all([
+        authAPI.getMe(),
+        familyAPI.get().catch(() => ({ data: null })),
+      ]);
+      if (userRes.data) {
+        setUser(userRes.data);
+        localStorage.setItem('user', JSON.stringify(userRes.data));
+      }
+      setFamily(familyRes.data);
+    } catch (error) {
+      console.error('Failed to load user data:', error);
+    }
+  };
 
   const loadFamily = async () => {
     try {
@@ -45,10 +61,21 @@ export const AuthProvider = ({ children }) => {
     const response = await authAPI.pinLogin(pin);
     const { token, family: familyData } = response.data;
     localStorage.setItem('token', token);
-    localStorage.setItem('user', JSON.stringify({ id: 'guest', name: 'Family Member' }));
-    setUser({ id: 'guest', name: 'Family Member' });
+    localStorage.setItem('user', JSON.stringify({ id: 'guest', name: 'Family Member', role: 'child' }));
+    setUser({ id: 'guest', name: 'Family Member', role: 'child' });
     setFamily(familyData);
     setIsAuthenticated(true);
+    return response.data;
+  };
+
+  const userPinLogin = async (pin) => {
+    const response = await authAPI.userPinLogin(pin);
+    const { token, user: userData } = response.data;
+    localStorage.setItem('token', token);
+    localStorage.setItem('user', JSON.stringify(userData));
+    setUser(userData);
+    setIsAuthenticated(true);
+    await loadFamily();
     return response.data;
   };
 
@@ -57,9 +84,10 @@ export const AuthProvider = ({ children }) => {
     return response.data;
   };
 
-  const createFamily = async (name, pin) => {
-    const response = await familyAPI.create({ name, pin });
+  const createFamily = async (name) => {
+    const response = await familyAPI.create({ name });
     setFamily(response.data);
+    await loadUserData();
     return response.data;
   };
 
@@ -71,6 +99,10 @@ export const AuthProvider = ({ children }) => {
     setIsAuthenticated(false);
   };
 
+  const refreshUser = async () => {
+    await loadUserData();
+  };
+
   const value = {
     user,
     family,
@@ -78,10 +110,12 @@ export const AuthProvider = ({ children }) => {
     isAuthenticated,
     login,
     pinLogin,
+    userPinLogin,
     register,
     createFamily,
     logout,
     loadFamily,
+    refreshUser,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
