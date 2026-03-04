@@ -1,17 +1,14 @@
 import axios from 'axios';
 
-// Get API URL - check localStorage for custom server first, then fallback to env or same origin
 const getApiUrl = () => {
   const customServer = localStorage.getItem('customServerUrl');
   if (customServer) {
     return customServer + '/api';
   }
-  // If REACT_APP_BACKEND_URL is empty or not set, use same origin (for Docker deployment)
   const envUrl = process.env.REACT_APP_BACKEND_URL;
   if (envUrl) {
     return envUrl + '/api';
   }
-  // Same origin - for production Docker deployment
   return '/api';
 };
 
@@ -22,7 +19,6 @@ const api = axios.create({
   },
 });
 
-// Update baseURL when custom server changes
 export const setCustomServer = (url) => {
   if (url) {
     localStorage.setItem('customServerUrl', url);
@@ -47,7 +43,6 @@ export const testServerConnection = async (url) => {
   }
 };
 
-// Add auth token to requests
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
@@ -56,7 +51,6 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
-// Handle auth errors
 api.interceptors.response.use(
   (response) => response,
   (error) => {
@@ -74,6 +68,7 @@ export const authAPI = {
   register: (data) => api.post('/auth/register', data),
   login: (data) => api.post('/auth/login', data),
   pinLogin: (pin) => api.post('/auth/pin-login', { pin }),
+  userPinLogin: (pin) => api.post('/auth/user-pin-login', { pin }),
   getMe: () => api.get('/auth/me'),
 };
 
@@ -81,8 +76,21 @@ export const authAPI = {
 export const familyAPI = {
   create: (data) => api.post('/family/create', data),
   get: () => api.get('/family'),
+  update: (data) => api.put('/family', data),
   getMembers: () => api.get('/family/members'),
   join: (familyId) => api.post(`/family/join/${familyId}`),
+  invite: (data) => api.post('/family/invite', data),
+  updateMemberRole: (memberId, role) => api.put(`/family/members/${memberId}/role`, { role }),
+  removeMember: (memberId) => api.delete(`/family/members/${memberId}`),
+  regenerateFamilyPin: () => api.post('/family/regenerate-pin'),
+  regenerateUserPin: (memberId) => api.post(`/family/members/${memberId}/regenerate-pin`),
+};
+
+// Settings
+export const settingsAPI = {
+  get: () => api.get('/settings'),
+  update: (data) => api.put('/settings', data),
+  getServer: () => api.get('/settings/server'),
 };
 
 // Calendar
@@ -91,6 +99,9 @@ export const calendarAPI = {
   createEvent: (data) => api.post('/calendar', data),
   updateEvent: (id, data) => api.put(`/calendar/${id}`, data),
   deleteEvent: (id) => api.delete(`/calendar/${id}`),
+  googleAuth: () => api.get('/calendar/google/auth'),
+  googleSync: () => api.post('/calendar/google/sync'),
+  googleDisconnect: () => api.delete('/calendar/google/disconnect'),
 };
 
 // Shopping List
@@ -110,18 +121,26 @@ export const tasksAPI = {
   deleteTask: (id) => api.delete(`/tasks/${id}`),
 };
 
+// Chores & Rewards
+export const choresAPI = {
+  getChores: () => api.get('/chores'),
+  createChore: (data) => api.post('/chores', data),
+  updateChore: (id, data) => api.put(`/chores/${id}`, data),
+  completeChore: (id) => api.post(`/chores/${id}/complete`),
+  deleteChore: (id) => api.delete(`/chores/${id}`),
+  getRewards: () => api.get('/rewards'),
+  createReward: (data) => api.post('/rewards', data),
+  claimReward: (data) => api.post('/rewards/claim', data),
+  deleteReward: (id) => api.delete(`/rewards/${id}`),
+  getLeaderboard: () => api.get('/leaderboard'),
+};
+
 // Notes
 export const notesAPI = {
   getNotes: () => api.get('/notes'),
   createNote: (data) => api.post('/notes', data),
   updateNote: (id, data) => api.put(`/notes/${id}`, data),
   deleteNote: (id) => api.delete(`/notes/${id}`),
-};
-
-// Messages
-export const messagesAPI = {
-  getMessages: () => api.get('/messages'),
-  sendMessage: (data) => api.post('/messages', data),
 };
 
 // Budget
@@ -135,10 +154,10 @@ export const budgetAPI = {
 
 // Meal Plans
 export const mealPlanAPI = {
-  getPlans: () => api.get('/meal-plans'),
-  createPlan: (data) => api.post('/meal-plans', data),
-  updatePlan: (id, data) => api.put(`/meal-plans/${id}`, data),
-  deletePlan: (id) => api.delete(`/meal-plans/${id}`),
+  getPlans: () => api.get('/meals'),
+  createPlan: (data) => api.post('/meals', data),
+  updatePlan: (id, data) => api.put(`/meals/${id}`, data),
+  deletePlan: (id) => api.delete(`/meals/${id}`),
 };
 
 // Recipes
@@ -167,16 +186,6 @@ export const contactsAPI = {
   deleteContact: (id) => api.delete(`/contacts/${id}`),
 };
 
-// Photos
-export const photosAPI = {
-  getPhotos: () => api.get('/photos'),
-  uploadPhoto: (formData) => api.post('/photos', formData, {
-    headers: { 'Content-Type': 'multipart/form-data' },
-  }),
-  getPhotoUrl: (id) => `${API_URL}/photos/${id}/file`,
-  deletePhoto: (id) => api.delete(`/photos/${id}`),
-};
-
 // Pantry
 export const pantryAPI = {
   getItems: () => api.get('/pantry'),
@@ -188,7 +197,7 @@ export const pantryAPI = {
 
 // Meal Suggestions
 export const suggestionsAPI = {
-  getSuggestions: () => api.get('/meal-suggestions'),
+  getSuggestions: () => api.get('/suggestions'),
 };
 
 export default api;
