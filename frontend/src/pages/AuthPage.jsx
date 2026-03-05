@@ -94,11 +94,18 @@ const AuthPage = () => {
 
   const handleRegister = async (e) => {
     e.preventDefault();
+    if (!familyName.trim()) {
+      toast.error('Please enter a family name');
+      return;
+    }
     setLoading(true);
     try {
-      await register(name, email, password);
-      toast.success('Account created! Please login.');
-      setMode('login');
+      const result = await register(name, email, password, familyName);
+      toast.success(`Family created! Your Family PIN is: ${result.family_pin}`, { duration: 10000 });
+      // Auto-login after registration since we get a token back
+      localStorage.setItem('token', result.token);
+      localStorage.setItem('user', JSON.stringify(result.user));
+      window.location.reload();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Registration failed');
     }
@@ -107,17 +114,12 @@ const AuthPage = () => {
 
   const handleSetupFamily = async (e) => {
     e.preventDefault();
-    if (familyPin.length < 4) {
-      toast.error('Family PIN must be at least 4 digits');
-      return;
-    }
     setLoading(true);
     try {
-      // First login
       await login(email, password);
-      // Then create family
-      await createFamily(familyName, familyPin);
-      toast.success('Family created! Share the PIN with your family members.');
+      const result = await createFamily(familyName);
+      toast.success(`Family created! Your Family PIN is: ${result.pin}`, { duration: 10000 });
+      window.location.reload();
     } catch (error) {
       toast.error(error.response?.data?.detail || 'Setup failed');
     }
