@@ -475,71 +475,12 @@ const AuthPage = () => {
                   </div>
                 </TabsContent>
 
-                {/* Setup Family */}
-                <TabsContent value="setup">
-                  <form onSubmit={handleSetupFamily} className="space-y-4">
-                    <div className="bg-sage/10 rounded-xl p-4 mb-4">
-                      <p className="text-sage text-sm flex items-center gap-2">
-                        <Users className="w-4 h-4" />
-                        Create your family hub and invite members with a shared PIN
-                      </p>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-navy mb-2">Family Name</label>
-                      <Input
-                        type="text"
-                        value={familyName}
-                        onChange={(e) => setFamilyName(e.target.value)}
-                        placeholder="The Smiths"
-                        className="input-cozy"
-                        data-testid="family-name"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-navy mb-2">Family PIN</label>
-                      <Input
-                        type="password"
-                        value={familyPin}
-                        onChange={(e) => setFamilyPin(e.target.value.replace(/\D/g, ''))}
-                        placeholder="••••"
-                        maxLength={6}
-                        className="input-cozy"
-                        data-testid="family-pin"
-                      />
-                      <p className="text-xs text-navy-light mt-1">
-                        Share this PIN with family members for easy access
-                      </p>
-                    </div>
-                    <Button
-                      type="submit"
-                      disabled={loading}
-                      className="btn-primary w-full"
-                      data-testid="setup-submit"
-                    >
-                      {loading ? 'Setting up...' : 'Create Family Hub'}
-                      <Home className="w-4 h-4 ml-2" />
-                    </Button>
-                  </form>
-                </TabsContent>
               </Tabs>
             )}
           </div>
 
           {/* Bottom links */}
           <div className="mt-6 space-y-3">
-            {mode === 'login' && (
-              <div className="text-center">
-                <button
-                  onClick={() => setMode('setup')}
-                  className="text-sm text-navy-light hover:text-terracotta transition-colors"
-                  data-testid="goto-setup"
-                >
-                  <Users className="w-4 h-4 inline mr-1" />
-                  Want to create a new family hub?
-                </button>
-              </div>
-            )}
-            
             {mode !== 'server' && (
               <div className="text-center">
                 <button
