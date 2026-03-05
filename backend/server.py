@@ -418,9 +418,9 @@ async def get_family(user: dict = Depends(get_current_user)):
 
 @api_router.put("/family")
 async def update_family(update: FamilyUpdate, user: dict = Depends(get_current_user)):
-    user_data = await db.users.find_one({"id": user["user_id"]}, {"_id": 0})
-    if not check_permission(user_data.get("role", "member"), "can_manage_family"):
-        if user_data.get("role") not in ["owner", "parent"]:
+    user_role = await get_user_role(user)
+    if not check_permission(user_role, "can_manage_family"):
+        if user_role not in ["owner", "parent"]:
             raise HTTPException(status_code=403, detail="Not authorized to update family")
     
     update_data = {k: v for k, v in update.model_dump().items() if v is not None}
