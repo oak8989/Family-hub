@@ -243,6 +243,14 @@ class TestTasksWithAssignment:
             headers=headers
         )
         
+        # Re-login to get updated token with family_id
+        login_resp = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "email": user_email,
+            "password": TEST_USER_PASSWORD
+        })
+        token = login_resp.json()["token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
         return {"token": token, "user_id": user_id, "headers": headers}
     
     def test_create_task_with_assignment(self, auth_setup):
@@ -406,6 +414,14 @@ class TestBudgetModule:
             headers=headers
         )
         
+        # Re-login to get updated token with family_id
+        login_resp = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "email": user_email,
+            "password": TEST_USER_PASSWORD
+        })
+        token = login_resp.json()["token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
         return {"token": token, "headers": headers}
     
     def test_create_budget_entry(self, auth_setup):
@@ -546,6 +562,14 @@ class TestUserRoles:
             json={"name": "Roles Test Family"},
             headers=headers
         )
+        
+        # Re-login to get updated token with family_id
+        login_resp = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "email": user_email,
+            "password": TEST_USER_PASSWORD
+        })
+        token = login_resp.json()["token"]
+        headers = {"Authorization": f"Bearer {token}"}
         
         return {"token": token, "headers": headers}
     
