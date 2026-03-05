@@ -100,6 +100,7 @@ class UserCreate(BaseModel):
     password: str
     role: str = "member"
     avatar_seed: Optional[str] = None
+    family_name: Optional[str] = None  # If provided, creates a new family
 
 class UserLogin(BaseModel):
     email: str
