@@ -271,21 +271,45 @@ const AuthPage = () => {
                 {/* PIN Login */}
                 <TabsContent value="pin">
                   <form onSubmit={handlePinLogin} className="space-y-6">
+                    {/* PIN Type Toggle */}
+                    <div className="flex gap-2 p-1 bg-cream rounded-lg">
+                      <button
+                        type="button"
+                        onClick={() => { setPinType('family'); setPin(''); }}
+                        className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
+                          pinType === 'family' ? 'bg-sage text-white' : 'text-navy-light hover:bg-sunny/30'
+                        }`}
+                      >
+                        <Users className="w-4 h-4 inline mr-1" /> Family PIN
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => { setPinType('personal'); setPin(''); }}
+                        className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
+                          pinType === 'personal' ? 'bg-sage text-white' : 'text-navy-light hover:bg-sunny/30'
+                        }`}
+                      >
+                        <User className="w-4 h-4 inline mr-1" /> My PIN
+                      </button>
+                    </div>
+                    
                     <div>
                       <label className="block text-sm font-medium text-navy mb-2">
-                        Enter Family PIN
+                        {pinType === 'family' ? 'Enter Family PIN (6 digits)' : 'Enter Your Personal PIN (4 digits)'}
                       </label>
                       <Input
                         type="password"
                         value={pin}
                         onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
-                        placeholder="••••"
-                        maxLength={6}
+                        placeholder={pinType === 'family' ? '••••••' : '••••'}
+                        maxLength={pinType === 'family' ? 6 : 4}
                         className="input-cozy text-center text-2xl tracking-widest"
                         data-testid="pin-input"
                       />
                       <p className="text-sm text-navy-light mt-2 text-center font-handwritten">
-                        Ask a family member for the PIN!
+                        {pinType === 'family' 
+                          ? 'Ask a family member for the Family PIN!' 
+                          : 'Use your personal PIN to access your account'}
                       </p>
                     </div>
                     <Button
