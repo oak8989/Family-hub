@@ -24,7 +24,7 @@ Build a family app with: shared calendar, shopping list, task list, shared notes
 ## What's Been Implemented
 
 ### Core Features (Complete)
-1. **Authentication** - JWT login/register + Family PIN + Individual User PIN
+1. **Authentication** - JWT login/register + Family PIN (6-digit, auto-generated) + Personal PIN (4-digit)
 2. **Dashboard** - Bento grid with quick stats and module access
 3. **Calendar** - Create, edit, delete events with color coding + Google Calendar sync
 4. **Shopping List** - Categorized items with check/uncheck
@@ -39,27 +39,24 @@ Build a family app with: shared calendar, shopping list, task list, shared notes
 13. **Meal Suggestions** - Rule-based matching recipes to pantry
 14. **Chores & Rewards** - **Gamified chore chart** with points, leaderboard, and claimable rewards
 
-### Admin Features (New - Dec 2025)
+### Admin Features (Complete)
 - **Settings Page** with tabs for Family, Modules, Integrations, Server
-- **Add User by Email** - Send email invitations via SMTP
+- **Add Family Member** - Simple form with name + role, auto-generates PIN
 - **User Roles** - Owner, Parent, Family Member, Child with different permissions
-- **Auto-generated PINs** - Family PIN (6 digits) + User PIN (4 digits)
+- **Auto-generated PINs**:
+  - Family PIN: 6 digits (shared for quick family access)
+  - Personal PIN: 4 digits (individual user login)
 - **Module Enable/Disable** - Admins can hide modules from certain roles
 - **Role-based Visibility** - Control which roles can see which modules
 - **Family Name Changeable** - Admins can update family name
+- **PIN Regeneration** - Regenerate family or individual PINs anytime
 - **Google Calendar Sync** - Connect and sync events to Google Calendar
 
-### Removed Features
-- Photo Gallery (removed per user request)
-- Messages (removed per user request)
-
-### Self-Hosting & DevOps
-- **Dockerfile** - Multi-stage build for production
-- **docker-compose.yml** - Full stack with MongoDB
-- **docker-compose.prod.yml** - Production deployment with Traefik HTTPS
-- **Self-Hosted Server Config** - Mobile/web can connect to custom server
-- **PWA Support** - Add to Home Screen on mobile
-- **GitHub Actions CI/CD** - Docker publish, releases
+### Self-Hosting (Complete)
+- **Fully Self-Contained Docker Image** with MongoDB embedded
+- **Single command deployment**: `docker run -p 8001:8001 ghcr.io/oak8989/family-hub`
+- **Data Persistence** via Docker volumes
+- **Health Check** endpoint for container orchestration
 
 ## Configuration Required
 
