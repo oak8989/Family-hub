@@ -81,6 +81,14 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (name, email, password, familyName = null) => {
     const response = await authAPI.register({ name, email, password, family_name: familyName });
+    const { token, user: userData } = response.data;
+    if (token && userData) {
+      localStorage.setItem('token', token);
+      localStorage.setItem('user', JSON.stringify(userData));
+      setUser(userData);
+      setIsAuthenticated(true);
+      await loadFamily();
+    }
     return response.data;
   };
 
