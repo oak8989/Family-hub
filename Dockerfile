@@ -1,6 +1,6 @@
 # =============================================================================
-# Family Hub - Self-Hosted Family Organization App
-# Multi-stage Docker build for production deployment
+# Family Hub - Fully Self-Contained Docker Image
+# Single container with MongoDB + FastAPI + React Frontend
 # =============================================================================
 
 # -----------------------------------------------------------------------------
@@ -10,16 +10,11 @@ FROM node:18-slim AS frontend-builder
 
 WORKDIR /app/frontend
 
-# Copy package files
 COPY frontend/package.json frontend/yarn.lock* ./
-
-# Install dependencies
 RUN yarn install --network-timeout 300000 --ignore-engines
 
-# Copy frontend source
 COPY frontend/ ./
 
-# Build with empty backend URL (same-origin in production)
 ENV REACT_APP_BACKEND_URL=""
 ENV NODE_ENV=production
 ENV CI=false
@@ -27,32 +22,45 @@ ENV DISABLE_ESLINT_PLUGIN=true
 ENV GENERATE_SOURCEMAP=false
 
 RUN yarn build
-
-# Verify build output
-RUN test -f /app/frontend/build/index.html || (echo "Build failed - no index.html" && exit 1)
+RUN test -f /app/frontend/build/index.html || exit 1
 
 # -----------------------------------------------------------------------------
-# Stage 2: Production Image
+# Stage 2: Production Image with MongoDB
 # -----------------------------------------------------------------------------
-FROM python:3.11-slim AS production
+FROM ubuntu:22.04
 
 LABEL org.opencontainers.image.title="Family Hub"
-LABEL org.opencontainers.image.description="Self-hosted family organization app"
+LABEL org.opencontainers.image.description="Self-contained family organization app"
 LABEL org.opencontainers.image.source="https://github.com/oak8989/family-hub"
 LABEL org.opencontainers.image.licenses="MIT"
 
-WORKDIR /app
+# Prevent interactive prompts
+ENV DEBIAN_FRONTEND=noninteractive
 
-# Install system dependencies
+# Install dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
-    && rm -rf /var/lib/apt/lists/* \
-    && apt-get clean
+    gnupg \
+    python3 \
+    python3-pip \
+    python3-venv \
+    supervisor \
+    && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user for security
-RUN useradd --create-home --shell /bin/bash appuser
+# Install MongoDB 7.0
+RUN curl -fsSL https://www.mongodb.org/static/pgp/server-7.0.asc | gpg --dearmor -o /usr/share/keyrings/mongodb-server-7.0.gpg \
+    && echo "deb [ signed-by=/usr/share/keyrings/mongodb-server-7.0.gpg ] http://repo.mongodb.org/apt/ubuntu jammy/mongodb-org/7.0 multiverse" > /etc/apt/sources.list.d/mongodb-org-7.0.list \
+    && apt-get update \
+    && apt-get install -y mongodb-org \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy and install Python dependencies
+WORKDIR /app
+
+# Create Python virtual environment
+RUN python3 -m venv /app/venv
+ENV PATH="/app/venv/bin:$PATH"
+
+# Install Python dependencies
 COPY backend/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
@@ -60,21 +68,42 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # Copy backend code
 COPY backend/server.py ./backend/server.py
 
-# Copy frontend build from builder stage
+# Copy frontend build
 COPY --from=frontend-builder /app/frontend/build ./frontend/build
 
-# Verify frontend was copied
-RUN test -f /app/frontend/build/index.html || (echo "Frontend build missing" && exit 1)
+# Create directories
+RUN mkdir -p /data/db /app/backend/photos /var/log/supervisor
 
-# Create directories for data persistence
-RUN mkdir -p /app/backend/photos /app/data \
-    && chown -R appuser:appuser /app
+# Create supervisor configuration
+RUN echo '[supervisord]\n\
+nodaemon=true\n\
+user=root\n\
+logfile=/var/log/supervisor/supervisord.log\n\
+pidfile=/var/run/supervisord.pid\n\
+\n\
+[program:mongodb]\n\
+command=/usr/bin/mongod --bind_ip_all --dbpath /data/db\n\
+autostart=true\n\
+autorestart=true\n\
+stdout_logfile=/var/log/supervisor/mongodb.log\n\
+stderr_logfile=/var/log/supervisor/mongodb_err.log\n\
+priority=1\n\
+\n\
+[program:familyhub]\n\
+command=/app/venv/bin/python -m uvicorn backend.server:app --host 0.0.0.0 --port 8001\n\
+directory=/app\n\
+autostart=true\n\
+autorestart=true\n\
+stdout_logfile=/var/log/supervisor/familyhub.log\n\
+stderr_logfile=/var/log/supervisor/familyhub_err.log\n\
+environment=MONGO_URL="mongodb://localhost:27017",DB_NAME="family_hub",CORS_ORIGINS="*"\n\
+priority=2\n\
+startsecs=5\n\
+startretries=3\n\
+' > /etc/supervisor/conf.d/familyhub.conf
 
-# Switch to non-root user
-USER appuser
-
-# Environment variables (non-sensitive defaults only)
-ENV MONGO_URL=mongodb://mongo:27017 \
+# Environment variables
+ENV MONGO_URL=mongodb://localhost:27017 \
     DB_NAME=family_hub \
     CORS_ORIGINS=* \
     PORT=8001
@@ -83,8 +112,11 @@ ENV MONGO_URL=mongodb://mongo:27017 \
 EXPOSE 8001
 
 # Health check
-HEALTHCHECK --interval=30s --timeout=10s --start-period=30s --retries=3 \
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
     CMD curl -f http://localhost:8001/api/health || exit 1
 
-# Start the application
-CMD ["python", "-m", "uvicorn", "backend.server:app", "--host", "0.0.0.0", "--port", "8001"]
+# Volume for data persistence
+VOLUME ["/data/db", "/app/backend/photos"]
+
+# Start supervisor (manages both MongoDB and the app)
+CMD ["/usr/bin/supervisord", "-c", "/etc/supervisor/conf.d/familyhub.conf"]
