@@ -107,8 +107,8 @@ class TestFamilyManagement:
     """Family creation and management tests"""
     
     @pytest.fixture(scope="class")
-    def auth_token(self):
-        """Create user and get auth token"""
+    def auth_setup(self):
+        """Create user, family and get auth token with family_id"""
         user_email = f"owner_{uuid.uuid4().hex[:8]}@family.com"
         # Register
         requests.post(f"{BASE_URL}/api/auth/register", json={
@@ -122,39 +122,46 @@ class TestFamilyManagement:
             "email": user_email,
             "password": TEST_USER_PASSWORD
         })
-        return response.json()["token"]
-    
-    @pytest.fixture(scope="class")
-    def family_data(self, auth_token):
-        """Create a family and return data"""
-        headers = {"Authorization": f"Bearer {auth_token}"}
-        response = requests.post(f"{BASE_URL}/api/family/create", 
+        token = response.json()["token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        # Create family
+        family_resp = requests.post(f"{BASE_URL}/api/family/create", 
             json={"name": TEST_FAMILY_NAME},
             headers=headers
         )
-        assert response.status_code == 200
-        data = response.json()
-        return data
+        family_data = family_resp.json()
+        
+        # Re-login to get updated token with family_id
+        response = requests.post(f"{BASE_URL}/api/auth/login", json={
+            "email": user_email,
+            "password": TEST_USER_PASSWORD
+        })
+        token = response.json()["token"]
+        headers = {"Authorization": f"Bearer {token}"}
+        
+        return {"token": token, "headers": headers, "family_data": family_data, "email": user_email}
     
-    def test_create_family_generates_6_digit_pin(self, family_data):
+    def test_create_family_generates_6_digit_pin(self, auth_setup):
         """Test family creation auto-generates 6-digit PIN"""
+        family_data = auth_setup["family_data"]
         assert "pin" in family_data
         assert len(family_data["pin"]) == 6
         assert family_data["pin"].isdigit()
         print(f"✓ Family PIN generated: {family_data['pin']} (6 digits)")
     
-    def test_get_family(self, auth_token, family_data):
+    def test_get_family(self, auth_setup):
         """Test getting family info"""
-        headers = {"Authorization": f"Bearer {auth_token}"}
+        headers = auth_setup["headers"]
         response = requests.get(f"{BASE_URL}/api/family", headers=headers)
         assert response.status_code == 200
         data = response.json()
         assert data["name"] == TEST_FAMILY_NAME
         print("✓ Get family working")
     
-    def test_update_family_name(self, auth_token, family_data):
+    def test_update_family_name(self, auth_setup):
         """Test updating family name"""
-        headers = {"Authorization": f"Bearer {auth_token}"}
+        headers = auth_setup["headers"]
         new_name = "Updated Family Name"
         response = requests.put(f"{BASE_URL}/api/family", 
             json={"name": new_name},
@@ -165,8 +172,9 @@ class TestFamilyManagement:
         assert data["name"] == new_name
         print("✓ Family name update working")
     
-    def test_family_pin_login(self, family_data):
+    def test_family_pin_login(self, auth_setup):
         """Test login with family PIN"""
+        family_data = auth_setup["family_data"]
         response = requests.post(f"{BASE_URL}/api/auth/pin-login", json={
             "pin": family_data["pin"]
         })
@@ -176,9 +184,9 @@ class TestFamilyManagement:
         assert "family" in data
         print("✓ Family PIN login working")
     
-    def test_add_family_member_generates_4_digit_pin(self, auth_token):
+    def test_add_family_member_generates_4_digit_pin(self, auth_setup):
         """Test adding family member generates 4-digit PIN"""
-        headers = {"Authorization": f"Bearer {auth_token}"}
+        headers = auth_setup["headers"]
         response = requests.post(f"{BASE_URL}/api/family/add-member",
             json={"name": "Child Member", "role": "child"},
             headers=headers
@@ -191,9 +199,9 @@ class TestFamilyManagement:
         assert data["role"] == "child"
         print(f"✓ Member added with PIN: {data['user_pin']} (4 digits)")
     
-    def test_get_family_members(self, auth_token):
+    def test_get_family_members(self, auth_setup):
         """Test getting family members list"""
-        headers = {"Authorization": f"Bearer {auth_token}"}
+        headers = auth_setup["headers"]
         response = requests.get(f"{BASE_URL}/api/family/members", headers=headers)
         assert response.status_code == 200
         data = response.json()
@@ -201,16 +209,14 @@ class TestFamilyManagement:
         assert len(data) >= 1  # At least the owner
         print(f"✓ Family members retrieved: {len(data)} members")
     
-    def test_regenerate_family_pin(self, auth_token, family_data):
+    def test_regenerate_family_pin(self, auth_setup):
         """Test regenerating family PIN"""
-        headers = {"Authorization": f"Bearer {auth_token}"}
-        old_pin = family_data["pin"]
+        headers = auth_setup["headers"]
         response = requests.post(f"{BASE_URL}/api/family/regenerate-pin", headers=headers)
         assert response.status_code == 200
         data = response.json()
         assert "pin" in data
         assert len(data["pin"]) == 6
-        # New PIN should be different (very high probability)
         print(f"✓ Family PIN regenerated: {data['pin']}")
 
 
