@@ -498,12 +498,7 @@ class QuickAddMember(BaseModel):
 @api_router.post("/family/add-member")
 async def quick_add_member(member: QuickAddMember, user: dict = Depends(get_current_user)):
     """Add a family member without email - just creates a PIN for them to login"""
-    user_data = await db.users.find_one({"id": user["user_id"]}, {"_id": 0})
-    # Handle guest users (from family PIN login) - they have child role from token
-    if not user_data:
-        user_role = user.get("role", "child")
-    else:
-        user_role = user_data.get("role", "member")
+    user_role = await get_user_role(user)
     if user_role not in ["owner", "parent"]:
         raise HTTPException(status_code=403, detail="Not authorized to add members")
     
