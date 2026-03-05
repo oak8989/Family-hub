@@ -298,6 +298,14 @@ def check_permission(user_role: str, required_permission: str) -> bool:
     role_info = ROLES.get(user_role, ROLES["child"])
     return role_info.get(required_permission, False)
 
+async def get_user_role(user: dict) -> str:
+    """Get user role - handles guest users from family PIN login"""
+    user_data = await db.users.find_one({"id": user["user_id"]}, {"_id": 0})
+    if not user_data:
+        # Guest user from family PIN login - use role from token
+        return user.get("role", "child")
+    return user_data.get("role", "member")
+
 async def send_email(to_email: str, subject: str, html_content: str):
     if not all([SMTP_HOST, SMTP_USER, SMTP_PASSWORD]):
         logging.warning("SMTP not configured, skipping email")
