@@ -63,7 +63,7 @@ ENV PATH="/app/venv/bin:$PATH"
 # Install Python dependencies
 COPY backend/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r requirements.txt --extra-index-url https://d33sy5i8bnduwe.cloudfront.net/simple/
 
 # Copy backend code
 COPY backend/server.py ./backend/server.py
@@ -96,7 +96,7 @@ autostart=true\n\
 autorestart=true\n\
 stdout_logfile=/var/log/supervisor/familyhub.log\n\
 stderr_logfile=/var/log/supervisor/familyhub_err.log\n\
-environment=MONGO_URL="mongodb://localhost:27017",DB_NAME="family_hub",CORS_ORIGINS="*"\n\
+environment=MONGO_URL="mongodb://localhost:27017",DB_NAME="family_hub",CORS_ORIGINS="*",EMERGENT_LLM_KEY="%(ENV_EMERGENT_LLM_KEY)s"\n\
 priority=2\n\
 startsecs=5\n\
 startretries=3\n\

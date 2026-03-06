@@ -29,13 +29,15 @@
 | 🥬 **Grocery List** | Quick shopping list |
 | 👥 **Contacts** | Family address book |
 | 📦 **Pantry** | Inventory tracking with barcode scanner |
-| 💡 **Meal Ideas** | Recipe suggestions based on pantry |
+| 💡 **Meal Ideas** | AI-powered recipe suggestions based on pantry |
 
 ### Admin Features
 - **User Management** - Add family members with auto-generated PINs
 - **Role-Based Access** - Owner, Parent, Family Member, Child roles
 - **Module Control** - Enable/disable modules per role
-- **Theme Customization** - Customize colors and appearance
+- **Mobile Setup** - QR code for easy device setup
+- **Push Notifications** - Browser notification support
+- **Data Export** - Full JSON backup + CSV exports
 - **Google Calendar Sync** - Sync events to Google Calendar
 
 ---
@@ -74,6 +76,8 @@ services:
       - family-hub-data:/data/db
     environment:
       - JWT_SECRET=change-this-to-a-secure-random-string
+      # Optional: AI-powered meal suggestions
+      # - EMERGENT_LLM_KEY=your-emergent-llm-key
       # Optional: Email invitations
       # - SMTP_HOST=smtp.gmail.com
       # - SMTP_PORT=587
