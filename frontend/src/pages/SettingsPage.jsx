@@ -137,7 +137,7 @@ const SettingsPage = () => {
 
   const handleUpdateRole = async (memberId, newRole) => {
     try {
-      await api.put(`/api/family/members/${memberId}/role`, { role: newRole });
+      await api.put(`/family/members/${memberId}/role`, { role: newRole });
       toast.success('Role updated');
       loadData();
     } catch (error) {
@@ -148,7 +148,7 @@ const SettingsPage = () => {
   const handleRemoveMember = async (memberId) => {
     if (!window.confirm('Are you sure you want to remove this member?')) return;
     try {
-      await api.delete(`/api/family/members/${memberId}`);
+      await api.delete(`/family/members/${memberId}`);
       toast.success('Member removed');
       loadData();
     } catch (error) {
@@ -158,7 +158,7 @@ const SettingsPage = () => {
 
   const handleRegenerateUserPin = async (memberId, memberName) => {
     try {
-      const res = await api.post(`/api/family/members/${memberId}/regenerate-pin`);
+      const res = await api.post(`/family/members/${memberId}/regenerate-pin`);
       toast.success(`New PIN for ${memberName}: ${res.data.pin}`, { duration: 10000 });
     } catch (error) {
       toast.error('Failed to regenerate PIN');

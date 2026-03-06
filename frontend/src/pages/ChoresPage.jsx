@@ -95,7 +95,7 @@ const ChoresPage = () => {
 
   const handleCompleteChore = async (choreId) => {
     try {
-      const res = await api.post(`/api/chores/${choreId}/complete`);
+      const res = await api.post(`/chores/${choreId}/complete`);
       toast.success(`Chore completed! +${res.data.points_earned} points`);
       loadData();
     } catch (error) {
@@ -105,7 +105,7 @@ const ChoresPage = () => {
 
   const handleDeleteChore = async (choreId) => {
     try {
-      await api.delete(`/api/chores/${choreId}`);
+      await api.delete(`/chores/${choreId}`);
       toast.success('Chore deleted');
       loadData();
     } catch (error) {
@@ -141,7 +141,7 @@ const ChoresPage = () => {
 
   const handleDeleteReward = async (rewardId) => {
     try {
-      await api.delete(`/api/rewards/${rewardId}`);
+      await api.delete(`/rewards/${rewardId}`);
       toast.success('Reward deleted');
       loadData();
     } catch (error) {

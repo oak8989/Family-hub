@@ -3,6 +3,12 @@
 ## Overview
 Family Hub is a fully self-contained, self-hosted family organization app with role-based access control. It runs as a single Docker container with MongoDB embedded.
 
+## Latest Update (December 2025)
+- **E2E Testing Completed**: All 90 backend tests passing (100% success rate)
+- **Bug Fixes Applied**: Fixed duplicate `/api/api/` prefix in ChoresPage.jsx and SettingsPage.jsx
+- **Owner Role Protection**: Verified fixed - owner cannot change their own role
+- **All Modules Verified**: Calendar, Shopping, Tasks, Chores, Rewards, Notes, Budget, Meals, Recipes, Grocery, Contacts, Pantry, Suggestions
+
 ## Original Requirements
 - Shared Calendar, Shopping List, Task List, Notes, Budget Tracker
 - Meal Planner, Recipe Box, Grocery List, Contact Book
