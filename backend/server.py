@@ -1,7 +1,7 @@
 from fastapi import FastAPI, APIRouter, HTTPException, Depends, UploadFile, File, Form, Query
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, RedirectResponse
+from fastapi.responses import FileResponse, RedirectResponse, StreamingResponse
 from dotenv import load_dotenv
 from starlette.middleware.cors import CORSMiddleware
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -23,6 +23,11 @@ from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request as GoogleRequest
 from googleapiclient.discovery import build
 import requests
+import json
+import io
+import qrcode
+import base64
+import asyncio
 
 ROOT_DIR = Path(__file__).parent
 load_dotenv(ROOT_DIR / '.env')
@@ -47,6 +52,9 @@ SMTP_PORT = int(os.environ.get('SMTP_PORT', '587'))
 SMTP_USER = os.environ.get('SMTP_USER', '')
 SMTP_PASSWORD = os.environ.get('SMTP_PASSWORD', '')
 SMTP_FROM = os.environ.get('SMTP_FROM', '')
+
+# Emergent LLM Key for AI features
+EMERGENT_LLM_KEY = os.environ.get('EMERGENT_LLM_KEY', '')
 
 app = FastAPI()
 api_router = APIRouter(prefix="/api")
@@ -1300,6 +1308,217 @@ async def get_meal_suggestions(user: dict = Depends(get_current_user)):
     
     suggestions.sort(key=lambda x: x["match_percent"], reverse=True)
     return suggestions[:10]
+
+# ============== AI-POWERED MEAL SUGGESTIONS ==============
+
+class AIMealSuggestionRequest(BaseModel):
+    use_ai: bool = True
+
+@api_router.post("/suggestions/ai")
+async def get_ai_meal_suggestions(request: AIMealSuggestionRequest, user: dict = Depends(get_current_user)):
+    """Generate AI-powered meal suggestions based on pantry items"""
+    pantry_items = await db.pantry_items.find({"family_id": user["family_id"]}, {"_id": 0}).to_list(1000)
+    
+    if not pantry_items:
+        return {"suggestions": [], "message": "Add items to your pantry first!"}
+    
+    pantry_names = [f"{p['name']} ({p.get('quantity', 1)} {p.get('unit', 'pcs')})" for p in pantry_items]
+    
+    if not EMERGENT_LLM_KEY:
+        return {"suggestions": [], "message": "AI features not configured. Please add EMERGENT_LLM_KEY."}
+    
+    try:
+        from emergentintegrations.llm.chat import LlmChat, UserMessage
+        
+        chat = LlmChat(
+            api_key=EMERGENT_LLM_KEY,
+            session_id=f"meal-suggestion-{user['family_id']}-{uuid.uuid4()}",
+            system_message="""You are a helpful family chef assistant. Given a list of pantry items, suggest creative and practical meal ideas.
+            
+For each suggestion, provide:
+- name: The meal name
+- description: A brief appetizing description
+- difficulty: easy, medium, or hard
+- time: Estimated cooking time in minutes
+- ingredients: List of ingredients needed (mark which ones they have)
+- instructions: Brief cooking steps (3-5 steps)
+- tips: Any helpful tips
+
+Respond ONLY with valid JSON in this exact format:
+{"meals": [{"name": "...", "description": "...", "difficulty": "easy", "time": 30, "ingredients": ["item (have)", "item (need)"], "instructions": ["Step 1", "Step 2"], "tips": "..."}]}"""
+        ).with_model("openai", "gpt-4o-mini")
+        
+        prompt = f"""Based on these pantry items, suggest 3-4 creative meal ideas that can be made:
+
+Pantry items: {', '.join(pantry_names)}
+
+Focus on meals that use mostly what's available. Mark ingredients as "(have)" if they're in the pantry, "(need)" if they need to be bought."""
+        
+        user_message = UserMessage(text=prompt)
+        response = await chat.send_message(user_message)
+        
+        # Parse the JSON response
+        try:
+            # Find JSON in the response
+            json_start = response.find('{')
+            json_end = response.rfind('}') + 1
+            if json_start >= 0 and json_end > json_start:
+                json_str = response[json_start:json_end]
+                data = json.loads(json_str)
+                return {"suggestions": data.get("meals", []), "message": "AI suggestions generated!"}
+        except json.JSONDecodeError:
+            pass
+        
+        return {"suggestions": [], "raw_response": response, "message": "Could not parse AI response"}
+        
+    except Exception as e:
+        logger.error(f"AI suggestion error: {e}")
+        return {"suggestions": [], "message": f"AI service error: {str(e)}"}
+
+# ============== QR CODE FOR MOBILE SETUP ==============
+
+@api_router.get("/qr-code")
+async def generate_qr_code(url: str = Query(..., description="Server URL to encode")):
+    """Generate QR code for easy mobile server setup"""
+    try:
+        qr = qrcode.QRCode(version=1, box_size=10, border=4)
+        qr.add_data(url)
+        qr.make(fit=True)
+        
+        img = qr.make_image(fill_color="black", back_color="white")
+        
+        buffer = io.BytesIO()
+        img.save(buffer, format="PNG")
+        buffer.seek(0)
+        
+        return StreamingResponse(buffer, media_type="image/png")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@api_router.get("/qr-code/base64")
+async def get_qr_code_base64(url: str = Query(..., description="Server URL to encode")):
+    """Generate QR code as base64 for embedding in pages"""
+    try:
+        qr = qrcode.QRCode(version=1, box_size=8, border=2)
+        qr.add_data(url)
+        qr.make(fit=True)
+        
+        img = qr.make_image(fill_color="black", back_color="white")
+        
+        buffer = io.BytesIO()
+        img.save(buffer, format="PNG")
+        buffer.seek(0)
+        
+        base64_str = base64.b64encode(buffer.getvalue()).decode()
+        return {"qr_code": f"data:image/png;base64,{base64_str}", "url": url}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# ============== PUSH NOTIFICATIONS ==============
+
+class PushSubscription(BaseModel):
+    endpoint: str
+    keys: Dict[str, str]
+
+@api_router.post("/notifications/subscribe")
+async def subscribe_push(subscription: PushSubscription, user: dict = Depends(get_current_user)):
+    """Subscribe to push notifications"""
+    await db.push_subscriptions.update_one(
+        {"user_id": user["user_id"]},
+        {"$set": {
+            "user_id": user["user_id"],
+            "family_id": user["family_id"],
+            "subscription": subscription.model_dump(),
+            "updated_at": datetime.now(timezone.utc).isoformat()
+        }},
+        upsert=True
+    )
+    return {"message": "Subscribed to notifications"}
+
+@api_router.delete("/notifications/unsubscribe")
+async def unsubscribe_push(user: dict = Depends(get_current_user)):
+    """Unsubscribe from push notifications"""
+    await db.push_subscriptions.delete_one({"user_id": user["user_id"]})
+    return {"message": "Unsubscribed from notifications"}
+
+@api_router.get("/notifications/vapid-key")
+async def get_vapid_public_key():
+    """Get VAPID public key for push notifications"""
+    # Generate a consistent VAPID key pair for the app
+    vapid_public = os.environ.get('VAPID_PUBLIC_KEY', 'BPbmrjjC3bH1P0vCGGjQnKfb_hAHQFLFgzVn-1IwQQWvLqHUDZJ6L3wqJ-3HzL9hH6xJxP7JQ3qRFmR9J_T8K2k')
+    return {"public_key": vapid_public}
+
+# ============== DATA EXPORT/BACKUP ==============
+
+@api_router.get("/export/data")
+async def export_family_data(user: dict = Depends(get_current_user)):
+    """Export all family data as JSON for backup"""
+    family_id = user["family_id"]
+    
+    # Collect all family data
+    data = {
+        "exported_at": datetime.now(timezone.utc).isoformat(),
+        "exported_by": user["user_id"],
+        "family": await db.families.find_one({"id": family_id}, {"_id": 0}),
+        "members": await db.users.find({"family_id": family_id}, {"_id": 0, "password": 0}).to_list(100),
+        "calendar_events": await db.calendar_events.find({"family_id": family_id}, {"_id": 0}).to_list(1000),
+        "shopping_items": await db.shopping_items.find({"family_id": family_id}, {"_id": 0}).to_list(1000),
+        "tasks": await db.tasks.find({"family_id": family_id}, {"_id": 0}).to_list(1000),
+        "chores": await db.chores.find({"family_id": family_id}, {"_id": 0}).to_list(1000),
+        "rewards": await db.rewards.find({"family_id": family_id}, {"_id": 0}).to_list(100),
+        "notes": await db.notes.find({"family_id": family_id}, {"_id": 0}).to_list(1000),
+        "budget_entries": await db.budget_entries.find({"family_id": family_id}, {"_id": 0}).to_list(1000),
+        "meal_plans": await db.meal_plans.find({"family_id": family_id}, {"_id": 0}).to_list(1000),
+        "recipes": await db.recipes.find({"family_id": family_id}, {"_id": 0}).to_list(1000),
+        "grocery_items": await db.grocery_items.find({"family_id": family_id}, {"_id": 0}).to_list(1000),
+        "contacts": await db.contacts.find({"family_id": family_id}, {"_id": 0}).to_list(1000),
+        "pantry_items": await db.pantry_items.find({"family_id": family_id}, {"_id": 0}).to_list(1000),
+        "settings": await db.settings.find_one({"family_id": family_id}, {"_id": 0}),
+    }
+    
+    # Return as downloadable JSON
+    json_str = json.dumps(data, indent=2, default=str)
+    
+    return StreamingResponse(
+        io.BytesIO(json_str.encode()),
+        media_type="application/json",
+        headers={"Content-Disposition": f"attachment; filename=family-hub-backup-{datetime.now().strftime('%Y%m%d')}.json"}
+    )
+
+@api_router.get("/export/csv/{module}")
+async def export_module_csv(module: str, user: dict = Depends(get_current_user)):
+    """Export specific module data as CSV"""
+    family_id = user["family_id"]
+    
+    collections = {
+        "calendar": ("calendar_events", ["id", "title", "description", "date", "time", "color"]),
+        "shopping": ("shopping_items", ["id", "name", "quantity", "category", "checked"]),
+        "tasks": ("tasks", ["id", "title", "description", "priority", "assigned_to", "due_date", "completed"]),
+        "chores": ("chores", ["id", "title", "description", "difficulty", "points", "assigned_to", "completed"]),
+        "budget": ("budget_entries", ["id", "description", "amount", "type", "category", "date"]),
+        "contacts": ("contacts", ["id", "name", "email", "phone", "address"]),
+        "pantry": ("pantry_items", ["id", "name", "quantity", "unit", "category", "expiry_date"]),
+    }
+    
+    if module not in collections:
+        raise HTTPException(status_code=400, detail=f"Invalid module. Choose from: {', '.join(collections.keys())}")
+    
+    collection_name, fields = collections[module]
+    items = await db[collection_name].find({"family_id": family_id}, {"_id": 0}).to_list(1000)
+    
+    # Generate CSV
+    output = io.StringIO()
+    output.write(",".join(fields) + "\n")
+    
+    for item in items:
+        row = [str(item.get(f, "")).replace(",", ";").replace("\n", " ") for f in fields]
+        output.write(",".join(row) + "\n")
+    
+    return StreamingResponse(
+        io.BytesIO(output.getvalue().encode()),
+        media_type="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={module}-export-{datetime.now().strftime('%Y%m%d')}.csv"}
+    )
 
 # ============== STATUS ROUTES ==============
 

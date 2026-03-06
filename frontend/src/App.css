@@ -221,10 +221,43 @@
     .hide-mobile {
         display: none !important;
     }
+    
+    /* Add padding at bottom for mobile nav */
+    main {
+        padding-bottom: 80px !important;
+    }
+    
+    /* Make buttons more touch-friendly */
+    .btn-primary, .btn-secondary, button {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    /* Improve dialog button spacing on mobile */
+    .dialog-buttons {
+        flex-direction: column;
+        gap: 12px;
+    }
+    
+    .dialog-buttons button {
+        width: 100%;
+    }
 }
 
 @media (min-width: 769px) {
     .hide-desktop {
         display: none !important;
     }
+}
+
+/* Hide Emergent badge on mobile to not block buttons */
+@media (max-width: 1024px) {
+    #emergent-badge {
+        display: none !important;
+    }
+}
+
+/* Allow users to hide badge with a class */
+.hide-emergent-badge #emergent-badge {
+    display: none !important;
 }

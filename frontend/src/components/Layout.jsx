@@ -131,16 +131,22 @@ const Layout = ({ children }) => {
       )}
 
       {/* Main content */}
-      <main className="flex-1 min-h-screen overflow-auto">
+      <main className="flex-1 min-h-screen overflow-auto pb-20 lg:pb-0">
         <div className="p-4 lg:p-8 pt-16 lg:pt-8">
           {children}
         </div>
       </main>
 
-      {/* Mobile bottom navigation */}
-      <nav className="mobile-nav lg:hidden">
-        <div className="flex justify-around py-2">
-          {[navItems[0], navItems[1], navItems[4], navItems[6], navItems[13]].map((item) => {
+      {/* Mobile bottom navigation - Show 5 most used items */}
+      <nav className="mobile-nav lg:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+        <div className="flex justify-around py-2 px-1">
+          {[
+            navItems[0],  // Dashboard
+            navItems[1],  // Calendar
+            navItems[3],  // Tasks
+            navItems[4],  // Chores
+            navItems[13]  // Settings
+          ].map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
             return (

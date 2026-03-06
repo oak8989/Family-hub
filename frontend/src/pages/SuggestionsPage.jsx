@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Lightbulb, ChefHat, ShoppingCart, Check, X } from 'lucide-react';
-import { suggestionsAPI, pantryAPI, recipesAPI } from '../lib/api';
+import { Lightbulb, ChefHat, ShoppingCart, Check, X, Sparkles, RefreshCw } from 'lucide-react';
+import { suggestionsAPI, pantryAPI } from '../lib/api';
 import { toast } from 'sonner';
 import { Button } from '../components/ui/button';
 import { Progress } from '../components/ui/progress';
@@ -10,6 +10,8 @@ const SuggestionsPage = () => {
   const [suggestions, setSuggestions] = useState([]);
   const [pantryItems, setPantryItems] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [aiSuggestions, setAiSuggestions] = useState([]);
+  const [aiLoading, setAiLoading] = useState(false);
 
   useEffect(() => {
     loadData();
@@ -27,6 +29,26 @@ const SuggestionsPage = () => {
       toast.error('Failed to load suggestions');
     }
     setLoading(false);
+  };
+
+  const loadAISuggestions = async () => {
+    if (pantryItems.length === 0) {
+      toast.error('Add items to your pantry first!');
+      return;
+    }
+    setAiLoading(true);
+    try {
+      const response = await suggestionsAPI.getAISuggestions();
+      if (response.data.suggestions) {
+        setAiSuggestions(response.data.suggestions);
+        toast.success('AI suggestions generated!');
+      } else {
+        toast.info(response.data.message || 'No AI suggestions available');
+      }
+    } catch (error) {
+      toast.error('Failed to generate AI suggestions');
+    }
+    setAiLoading(false);
   };
 
   const getMatchColor = (percent) => {
@@ -215,6 +237,54 @@ const SuggestionsPage = () => {
           ))}
         </div>
       )}
+
+      {/* AI Suggestions Section */}
+      <div className="card-cozy bg-gradient-to-r from-purple-50 to-cyan-50 border-purple-200">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4 mb-4">
+          <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-cyan-500 rounded-xl flex items-center justify-center flex-shrink-0">
+            <Sparkles className="w-6 h-6 text-white" />
+          </div>
+          <div className="flex-1">
+            <h3 className="font-heading font-bold text-navy">AI-Powered Meal Ideas</h3>
+            <p className="text-sm text-navy-light">Get creative suggestions based on your pantry</p>
+          </div>
+          <Button 
+            onClick={loadAISuggestions}
+            disabled={aiLoading || pantryItems.length === 0}
+            className="bg-gradient-to-r from-purple-500 to-cyan-500 text-white hover:opacity-90 w-full sm:w-auto"
+            data-testid="generate-ai-btn"
+          >
+            {aiLoading ? (
+              <span className="flex items-center gap-2"><RefreshCw className="w-4 h-4 animate-spin" />Thinking...</span>
+            ) : (
+              <span className="flex items-center gap-2"><Sparkles className="w-4 h-4" />Generate Ideas</span>
+            )}
+          </Button>
+        </div>
+        
+        {aiSuggestions.length > 0 && (
+          <div className="space-y-4 mt-4 pt-4 border-t border-purple-200">
+            {aiSuggestions.map((meal, idx) => (
+              <div key={idx} className="bg-white rounded-xl p-4 shadow-sm" data-testid={`ai-meal-${idx}`}>
+                <h4 className="font-heading font-bold text-navy">{meal.name}</h4>
+                <p className="text-sm text-navy-light mt-1">{meal.description}</p>
+                {meal.ingredients && (
+                  <div className="flex flex-wrap gap-1 mt-2">
+                    {meal.ingredients.slice(0, 6).map((ing, i) => (
+                      <span key={i} className={`text-xs px-2 py-0.5 rounded-full ${
+                        ing.includes('(have)') ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'
+                      }`}>{ing.replace('(have)', '').replace('(need)', '').trim()}</span>
+                    ))}
+                  </div>
+                )}
+                {meal.tips && (
+                  <p className="text-xs text-purple-600 mt-2 italic">Tip: {meal.tips}</p>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Tips */}
       <div className="card-cozy bg-sunny/10 border-sunny/30">

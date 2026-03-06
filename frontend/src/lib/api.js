@@ -198,6 +198,25 @@ export const pantryAPI = {
 // Meal Suggestions
 export const suggestionsAPI = {
   getSuggestions: () => api.get('/suggestions'),
+  getAISuggestions: () => api.post('/suggestions/ai', { use_ai: true }),
+};
+
+// QR Code
+export const qrCodeAPI = {
+  getQRCode: (url) => api.get(`/qr-code/base64?url=${encodeURIComponent(url)}`),
+};
+
+// Push Notifications
+export const notificationsAPI = {
+  getVapidKey: () => api.get('/notifications/vapid-key'),
+  subscribe: (subscription) => api.post('/notifications/subscribe', subscription),
+  unsubscribe: () => api.delete('/notifications/unsubscribe'),
+};
+
+// Data Export
+export const exportAPI = {
+  exportAllData: () => api.get('/export/data', { responseType: 'blob' }),
+  exportModuleCSV: (module) => api.get(`/export/csv/${module}`, { responseType: 'blob' }),
 };
 
 export default api;

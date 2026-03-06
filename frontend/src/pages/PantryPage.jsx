@@ -202,20 +202,20 @@ const PantryPage = () => {
 
   return (
     <div className="space-y-6" data-testid="pantry-page">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col gap-4">
         <div>
-          <h1 className="text-3xl font-heading font-bold text-navy flex items-center gap-3">
-            <Package className="w-8 h-8 text-amber-500" />
+          <h1 className="text-2xl sm:text-3xl font-heading font-bold text-navy flex items-center gap-3">
+            <Package className="w-7 h-7 sm:w-8 sm:h-8 text-amber-500" />
             Pantry Tracker
           </h1>
-          <p className="text-navy-light mt-1">{items.length} items in your pantry</p>
+          <p className="text-navy-light mt-1 text-sm sm:text-base">{items.length} items in your pantry</p>
         </div>
         
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <Button
             variant="outline"
             onClick={startScanner}
-            className="border-amber-400 text-amber-600 hover:bg-amber-50"
+            className="border-amber-400 text-amber-600 hover:bg-amber-50 w-full sm:w-auto"
             data-testid="scan-barcode-btn"
           >
             <Scan className="w-4 h-4 mr-2" />
@@ -224,7 +224,7 @@ const PantryPage = () => {
           
           <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
             <DialogTrigger asChild>
-              <Button className="btn-primary" data-testid="add-pantry-btn">
+              <Button className="btn-primary w-full sm:w-auto" data-testid="add-pantry-btn">
                 <Plus className="w-4 h-4 mr-2" />
                 Add Item
               </Button>
@@ -298,14 +298,45 @@ const PantryPage = () => {
                     data-testid="pantry-expiry-input"
                   />
                 </div>
-                
-                {form.barcode && (
-                  <div className="text-sm text-navy-light">
-                    Barcode: {form.barcode}
+
+                {/* Manual Barcode Entry */}
+                <div>
+                  <label className="block text-sm font-medium text-navy mb-2">Barcode (optional)</label>
+                  <div className="flex gap-2">
+                    <Input
+                      value={form.barcode}
+                      onChange={(e) => setForm({ ...form, barcode: e.target.value })}
+                      placeholder="Enter barcode manually"
+                      className="input-cozy flex-1"
+                      data-testid="pantry-barcode-input"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={async () => {
+                        if (form.barcode) {
+                          try {
+                            const response = await pantryAPI.lookupBarcode(form.barcode);
+                            setForm(prev => ({
+                              ...prev,
+                              name: response.data.name || prev.name,
+                              category: response.data.category || prev.category
+                            }));
+                            toast.success('Product found!');
+                          } catch {
+                            toast.info('Product not found in database');
+                          }
+                        }
+                      }}
+                      className="border-amber-300"
+                      data-testid="lookup-barcode-btn"
+                    >
+                      Lookup
+                    </Button>
                   </div>
-                )}
+                </div>
                 
-                <div className="flex gap-3">
+                <div className="flex flex-col sm:flex-row gap-3">
                   <Button type="submit" className="btn-primary flex-1" data-testid="save-pantry-btn">
                     {editingItem ? 'Update' : 'Add'} Item
                   </Button>

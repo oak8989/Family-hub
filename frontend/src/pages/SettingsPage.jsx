@@ -14,9 +14,10 @@ import { Badge } from '../components/ui/badge';
 import { toast } from 'sonner';
 import { 
   Settings, Users, Shield, Calendar, UserPlus, Trash2, 
-  RefreshCw, Server, Check, X, Crown, Eye, EyeOff, Copy, Key
+  RefreshCw, Server, Check, X, Crown, Eye, EyeOff, Copy, Key,
+  QrCode, Download, Bell, BellOff, Smartphone
 } from 'lucide-react';
-import api from '../lib/api';
+import api, { qrCodeAPI, notificationsAPI, exportAPI } from '../lib/api';
 
 const ROLE_COLORS = {
   owner: 'bg-amber-500',
@@ -59,6 +60,11 @@ const SettingsPage = () => {
   const [newMember, setNewMember] = useState({ name: '', role: 'member' });
   const [newMemberResult, setNewMemberResult] = useState(null);
   const [loading, setLoading] = useState(true);
+  
+  // New state for QR, notifications, exports
+  const [qrCode, setQrCode] = useState(null);
+  const [notificationsEnabled, setNotificationsEnabled] = useState(false);
+  const [exportLoading, setExportLoading] = useState(false);
 
   const isAdmin = user?.role === 'owner' || user?.role === 'parent';
   const isOwner = user?.role === 'owner';
@@ -250,23 +256,29 @@ const SettingsPage = () => {
       </div>
 
       <Tabs defaultValue="family" className="space-y-4">
-        <TabsList className="bg-warm-white">
+        <TabsList className="bg-warm-white flex-wrap">
           <TabsTrigger value="family" className="data-[state=active]:bg-terracotta data-[state=active]:text-white">
-            <Users className="w-4 h-4 mr-2" /> Family
+            <Users className="w-4 h-4 mr-1 sm:mr-2" /> <span className="hidden sm:inline">Family</span>
           </TabsTrigger>
           {isAdmin && (
             <>
               <TabsTrigger value="modules" className="data-[state=active]:bg-terracotta data-[state=active]:text-white">
-                <Shield className="w-4 h-4 mr-2" /> Modules
+                <Shield className="w-4 h-4 mr-1 sm:mr-2" /> <span className="hidden sm:inline">Modules</span>
               </TabsTrigger>
               <TabsTrigger value="integrations" className="data-[state=active]:bg-terracotta data-[state=active]:text-white">
-                <Calendar className="w-4 h-4 mr-2" /> Integrations
+                <Calendar className="w-4 h-4 mr-1 sm:mr-2" /> <span className="hidden sm:inline">Integrations</span>
               </TabsTrigger>
             </>
           )}
+          <TabsTrigger value="mobile" className="data-[state=active]:bg-terracotta data-[state=active]:text-white">
+            <Smartphone className="w-4 h-4 mr-1 sm:mr-2" /> <span className="hidden sm:inline">Mobile</span>
+          </TabsTrigger>
+          <TabsTrigger value="backup" className="data-[state=active]:bg-terracotta data-[state=active]:text-white">
+            <Download className="w-4 h-4 mr-1 sm:mr-2" /> <span className="hidden sm:inline">Backup</span>
+          </TabsTrigger>
           {isOwner && (
             <TabsTrigger value="server" className="data-[state=active]:bg-terracotta data-[state=active]:text-white">
-              <Server className="w-4 h-4 mr-2" /> Server
+              <Server className="w-4 h-4 mr-1 sm:mr-2" /> <span className="hidden sm:inline">Server</span>
             </TabsTrigger>
           )}
         </TabsList>
@@ -616,6 +628,221 @@ GOOGLE_REDIRECT_URI=https://your-domain.com/api/calendar/google/callback`}
             </Card>
           </TabsContent>
         )}
+
+        {/* Mobile Setup Tab */}
+        <TabsContent value="mobile" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <QrCode className="w-5 h-5 text-terracotta" />
+                Mobile Setup
+              </CardTitle>
+              <CardDescription>Easily connect mobile devices to your Family Hub</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* QR Code Section */}
+              <div className="p-4 bg-cream rounded-xl">
+                <h3 className="font-medium text-navy mb-2">Quick Connect with QR Code</h3>
+                <p className="text-sm text-navy-light mb-4">
+                  Scan this QR code with your phone to quickly set up the server URL
+                </p>
+                <div className="flex flex-col items-center gap-4">
+                  {qrCode ? (
+                    <img 
+                      src={qrCode} 
+                      alt="Server URL QR Code" 
+                      className="w-48 h-48 border rounded-xl"
+                      data-testid="qr-code-image"
+                    />
+                  ) : (
+                    <div className="w-48 h-48 border-2 border-dashed border-gray-300 rounded-xl flex items-center justify-center">
+                      <QrCode className="w-12 h-12 text-gray-300" />
+                    </div>
+                  )}
+                  <Button
+                    onClick={async () => {
+                      try {
+                        const serverUrl = window.location.origin;
+                        const response = await qrCodeAPI.getQRCode(serverUrl);
+                        setQrCode(response.data.qr_code);
+                        toast.success('QR code generated!');
+                      } catch (error) {
+                        toast.error('Failed to generate QR code');
+                      }
+                    }}
+                    className="btn-secondary"
+                    data-testid="generate-qr-btn"
+                  >
+                    <QrCode className="w-4 h-4 mr-2" />
+                    Generate QR Code
+                  </Button>
+                </div>
+              </div>
+
+              {/* Push Notifications Section */}
+              <div className="p-4 bg-cream rounded-xl">
+                <h3 className="font-medium text-navy mb-2 flex items-center gap-2">
+                  <Bell className="w-5 h-5" />
+                  Push Notifications
+                </h3>
+                <p className="text-sm text-navy-light mb-4">
+                  Get notified about tasks, events, and chores
+                </p>
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-navy">
+                      {notificationsEnabled ? 'Notifications enabled' : 'Notifications disabled'}
+                    </p>
+                    <p className="text-xs text-navy-light">
+                      {notificationsEnabled ? 'You will receive browser notifications' : 'Enable to stay updated'}
+                    </p>
+                  </div>
+                  <Button
+                    variant={notificationsEnabled ? 'outline' : 'default'}
+                    onClick={async () => {
+                      if (notificationsEnabled) {
+                        try {
+                          await notificationsAPI.unsubscribe();
+                          setNotificationsEnabled(false);
+                          toast.success('Notifications disabled');
+                        } catch (error) {
+                          toast.error('Failed to disable notifications');
+                        }
+                      } else {
+                        try {
+                          const permission = await Notification.requestPermission();
+                          if (permission === 'granted') {
+                            // For now, just mark as enabled - full implementation would use service workers
+                            setNotificationsEnabled(true);
+                            toast.success('Notifications enabled!');
+                          } else {
+                            toast.error('Notification permission denied');
+                          }
+                        } catch (error) {
+                          toast.error('Notifications not supported');
+                        }
+                      }
+                    }}
+                    className={notificationsEnabled ? 'border-red-300 text-red-600' : 'btn-primary'}
+                    data-testid="toggle-notifications-btn"
+                  >
+                    {notificationsEnabled ? (
+                      <>
+                        <BellOff className="w-4 h-4 mr-2" />
+                        Disable
+                      </>
+                    ) : (
+                      <>
+                        <Bell className="w-4 h-4 mr-2" />
+                        Enable
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        {/* Data Backup Tab */}
+        <TabsContent value="backup" className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Download className="w-5 h-5 text-terracotta" />
+                Data Export & Backup
+              </CardTitle>
+              <CardDescription>Download your family data for backup or migration</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Full Backup */}
+              <div className="p-4 bg-cream rounded-xl">
+                <h3 className="font-medium text-navy mb-2">Full Data Backup</h3>
+                <p className="text-sm text-navy-light mb-4">
+                  Download all your family data as a JSON file. Includes members, events, tasks, recipes, and more.
+                </p>
+                <Button
+                  onClick={async () => {
+                    setExportLoading(true);
+                    try {
+                      const response = await exportAPI.exportAllData();
+                      const url = window.URL.createObjectURL(new Blob([response.data]));
+                      const link = document.createElement('a');
+                      link.href = url;
+                      link.setAttribute('download', `family-hub-backup-${new Date().toISOString().split('T')[0]}.json`);
+                      document.body.appendChild(link);
+                      link.click();
+                      link.remove();
+                      toast.success('Backup downloaded!');
+                    } catch (error) {
+                      toast.error('Failed to export data');
+                    }
+                    setExportLoading(false);
+                  }}
+                  disabled={exportLoading}
+                  className="btn-primary w-full sm:w-auto"
+                  data-testid="export-all-btn"
+                >
+                  {exportLoading ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Exporting...
+                    </>
+                  ) : (
+                    <>
+                      <Download className="w-4 h-4 mr-2" />
+                      Download Full Backup (JSON)
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {/* Module-specific exports */}
+              <div className="p-4 bg-cream rounded-xl">
+                <h3 className="font-medium text-navy mb-2">Export by Module (CSV)</h3>
+                <p className="text-sm text-navy-light mb-4">
+                  Download specific modules as spreadsheet-compatible CSV files.
+                </p>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  {['calendar', 'shopping', 'tasks', 'chores', 'budget', 'contacts', 'pantry'].map((module) => (
+                    <Button
+                      key={module}
+                      variant="outline"
+                      size="sm"
+                      onClick={async () => {
+                        try {
+                          const response = await exportAPI.exportModuleCSV(module);
+                          const url = window.URL.createObjectURL(new Blob([response.data]));
+                          const link = document.createElement('a');
+                          link.href = url;
+                          link.setAttribute('download', `${module}-export-${new Date().toISOString().split('T')[0]}.csv`);
+                          document.body.appendChild(link);
+                          link.click();
+                          link.remove();
+                          toast.success(`${module} exported!`);
+                        } catch (error) {
+                          toast.error(`Failed to export ${module}`);
+                        }
+                      }}
+                      className="capitalize"
+                      data-testid={`export-${module}-btn`}
+                    >
+                      <Download className="w-3 h-3 mr-1" />
+                      {module}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Info */}
+              <div className="p-4 bg-blue-50 rounded-xl border border-blue-200">
+                <p className="text-sm text-blue-700">
+                  <strong>Tip:</strong> Regular backups help protect your family data. We recommend downloading a backup at least once a month.
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
     </div>
   );
