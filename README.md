@@ -40,6 +40,14 @@
 - **Data Export** - Full JSON backup + CSV exports
 - **Google Calendar Sync** - Sync events to Google Calendar
 
+### Server Admin Portal (Port 8050)
+- **Email Setup** - Configure SMTP for email invitations
+- **Google Calendar API** - Setup Google OAuth credentials
+- **OpenAI API** - Configure AI meal suggestions
+- **Server Config** - JWT secret, CORS, database settings
+- **Server Logs** - View backend/frontend/error logs
+- **Reboot Server** - Restart all services
+
 ---
 
 ## 🚀 Quick Start
@@ -52,12 +60,16 @@ Everything runs in ONE container - MongoDB included!
 docker run -d \
   --name family-hub \
   -p 8001:8001 \
+  -p 8050:8050 \
   -v family-hub-data:/data/db \
   -e JWT_SECRET=your-secret-key-change-me \
+  -e ADMIN_PASSWORD=your-admin-password \
   ghcr.io/oak8989/family-hub:latest
 ```
 
-**Access at:** http://localhost:8001
+**Access at:** 
+- App: http://localhost:8001
+- Admin Portal: http://localhost:8050 (user: admin, pass: familyhub)
 
 ### Docker Compose
 
@@ -71,14 +83,15 @@ services:
     image: ghcr.io/oak8989/family-hub:latest
     container_name: family-hub
     ports:
-      - "8001:8001"
+      - "8001:8001"   # Main app
+      - "8050:8050"   # Admin portal
     volumes:
       - family-hub-data:/data/db
     environment:
       - JWT_SECRET=change-this-to-a-secure-random-string
-      # Optional: AI-powered meal suggestions
-      - OPENAI_API_KEY=your-openai-api-key
-      # Optional: Email invitations
+      - ADMIN_PASSWORD=change-this-admin-password
+      # Configure via Admin Portal at :8050 or set here:
+      # - OPENAI_API_KEY=your-openai-api-key
       # - SMTP_HOST=smtp.gmail.com
       # - SMTP_PORT=587
       # - SMTP_USER=your-email@gmail.com

@@ -96,9 +96,21 @@ autostart=true\n\
 autorestart=true\n\
 stdout_logfile=/var/log/supervisor/familyhub.log\n\
 stderr_logfile=/var/log/supervisor/familyhub_err.log\n\
-environment=MONGO_URL="%(ENV_MONGO_URL)s",DB_NAME="%(ENV_DB_NAME)s",CORS_ORIGINS="%(ENV_CORS_ORIGINS)s",OPENAI_API_KEY="%(ENV_OPENAI_API_KEY)s",JWT_SECRET="%(ENV_JWT_SECRET)s"\n\
+environment=MONGO_URL="%(ENV_MONGO_URL)s",DB_NAME="%(ENV_DB_NAME)s",CORS_ORIGINS="%(ENV_CORS_ORIGINS)s",OPENAI_API_KEY="%(ENV_OPENAI_API_KEY)s",JWT_SECRET="%(ENV_JWT_SECRET)s",SMTP_HOST="%(ENV_SMTP_HOST)s",SMTP_PORT="%(ENV_SMTP_PORT)s",SMTP_USER="%(ENV_SMTP_USER)s",SMTP_PASSWORD="%(ENV_SMTP_PASSWORD)s",SMTP_FROM="%(ENV_SMTP_FROM)s",GOOGLE_CLIENT_ID="%(ENV_GOOGLE_CLIENT_ID)s",GOOGLE_CLIENT_SECRET="%(ENV_GOOGLE_CLIENT_SECRET)s",GOOGLE_REDIRECT_URI="%(ENV_GOOGLE_REDIRECT_URI)s"\n\
 priority=2\n\
 startsecs=5\n\
+startretries=3\n\
+\n\
+[program:admin]\n\
+command=/app/venv/bin/python -m uvicorn backend.admin_portal:app --host 0.0.0.0 --port 8050\n\
+directory=/app\n\
+autostart=true\n\
+autorestart=true\n\
+stdout_logfile=/var/log/supervisor/admin.log\n\
+stderr_logfile=/var/log/supervisor/admin_err.log\n\
+environment=MONGO_URL="%(ENV_MONGO_URL)s",ADMIN_USERNAME="%(ENV_ADMIN_USERNAME)s",ADMIN_PASSWORD="%(ENV_ADMIN_PASSWORD)s",SMTP_HOST="%(ENV_SMTP_HOST)s",SMTP_PORT="%(ENV_SMTP_PORT)s",SMTP_USER="%(ENV_SMTP_USER)s",SMTP_PASSWORD="%(ENV_SMTP_PASSWORD)s",OPENAI_API_KEY="%(ENV_OPENAI_API_KEY)s",JWT_SECRET="%(ENV_JWT_SECRET)s",DB_NAME="%(ENV_DB_NAME)s",CORS_ORIGINS="%(ENV_CORS_ORIGINS)s",GOOGLE_CLIENT_ID="%(ENV_GOOGLE_CLIENT_ID)s",GOOGLE_CLIENT_SECRET="%(ENV_GOOGLE_CLIENT_SECRET)s",GOOGLE_REDIRECT_URI="%(ENV_GOOGLE_REDIRECT_URI)s"\n\
+priority=3\n\
+startsecs=3\n\
 startretries=3\n\
 ' > /etc/supervisor/conf.d/familyhub.conf
 
@@ -108,10 +120,20 @@ ENV MONGO_URL=mongodb://localhost:27017 \
     CORS_ORIGINS=* \
     OPENAI_API_KEY="" \
     JWT_SECRET=family-hub-secret-change-me \
+    ADMIN_USERNAME=admin \
+    ADMIN_PASSWORD=familyhub \
+    SMTP_HOST="" \
+    SMTP_PORT=587 \
+    SMTP_USER="" \
+    SMTP_PASSWORD="" \
+    SMTP_FROM="" \
+    GOOGLE_CLIENT_ID="" \
+    GOOGLE_CLIENT_SECRET="" \
+    GOOGLE_REDIRECT_URI="" \
     PORT=8001
 
-# Expose port
-EXPOSE 8001
+# Expose ports (8001 = app, 8050 = admin portal)
+EXPOSE 8001 8050
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
