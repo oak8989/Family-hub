@@ -3,6 +3,7 @@ from typing import List
 from models.schemas import Note
 from auth import get_current_user
 from database import db
+from routers.websocket import notify_family
 from datetime import datetime, timezone
 
 router = APIRouter(prefix="/api/notes", tags=["notes"])

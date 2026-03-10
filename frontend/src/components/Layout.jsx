@@ -1,170 +1,178 @@
-import React, { useState } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import React, { useState, useCallback } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
+import useWebSocket from '../lib/useWebSocket';
 import {
-  Home, Calendar, ShoppingCart, CheckSquare, FileText,
-  DollarSign, Utensils, BookOpen, List, Users, Package, Lightbulb,
-  Menu, X, LogOut, ChevronRight, Settings, Award
+  Home, CalendarDays, ShoppingCart, CheckSquare, StickyNote,
+  DollarSign, UtensilsCrossed, BookOpen, ListOrdered, Contact,
+  Package, Lightbulb, Award, Settings, LogOut, Menu, X, Sun, Moon
 } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '../components/ui/avatar';
-import { Button } from '../components/ui/button';
-import { ScrollArea } from '../components/ui/scroll-area';
+import { toast } from 'sonner';
 
 const navItems = [
-  { path: '/dashboard', icon: Home, label: 'Dashboard' },
-  { path: '/calendar', icon: Calendar, label: 'Calendar' },
-  { path: '/shopping', icon: ShoppingCart, label: 'Shopping List' },
+  { path: '/dashboard', icon: Home, label: 'Home' },
+  { path: '/calendar', icon: CalendarDays, label: 'Calendar' },
+  { path: '/shopping', icon: ShoppingCart, label: 'Shopping' },
   { path: '/tasks', icon: CheckSquare, label: 'Tasks' },
-  { path: '/chores', icon: Award, label: 'Chores & Rewards' },
-  { path: '/notes', icon: FileText, label: 'Notes' },
+  { path: '/chores', icon: Award, label: 'Chores' },
+  { path: '/notes', icon: StickyNote, label: 'Notes' },
   { path: '/budget', icon: DollarSign, label: 'Budget' },
-  { path: '/meals', icon: Utensils, label: 'Meal Planner' },
-  { path: '/recipes', icon: BookOpen, label: 'Recipe Box' },
-  { path: '/grocery', icon: List, label: 'Grocery List' },
-  { path: '/contacts', icon: Users, label: 'Contacts' },
+  { path: '/meals', icon: UtensilsCrossed, label: 'Meals' },
+  { path: '/recipes', icon: BookOpen, label: 'Recipes' },
+  { path: '/grocery', icon: ListOrdered, label: 'Grocery' },
+  { path: '/contacts', icon: Contact, label: 'Contacts' },
   { path: '/pantry', icon: Package, label: 'Pantry' },
-  { path: '/suggestions', icon: Lightbulb, label: 'Meal Ideas' },
+  { path: '/suggestions', icon: Lightbulb, label: 'Ideas' },
   { path: '/settings', icon: Settings, label: 'Settings' },
 ];
 
 const Layout = ({ children }) => {
   const { user, family, logout } = useAuth();
+  const { darkMode, toggleDarkMode } = useTheme();
   const location = useLocation();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const navigate = useNavigate();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-  const NavLink = ({ item }) => {
-    const isActive = location.pathname === item.path;
-    const Icon = item.icon;
+  const handleWSMessage = useCallback((msg) => {
+    if (msg.type === 'update') {
+      toast.info(`${msg.module} was updated by a family member`, { duration: 3000 });
+      // Dispatch custom event for pages to listen to
+      window.dispatchEvent(new CustomEvent('ws-update', { detail: msg }));
+    }
+  }, []);
 
-    return (
-      <Link
-        to={item.path}
-        className={`sidebar-link ${isActive ? 'active' : ''}`}
-        onClick={() => setSidebarOpen(false)}
-        data-testid={`nav-${item.path.slice(1)}`}
-      >
-        <Icon className="w-5 h-5" />
-        <span className="font-medium">{item.label}</span>
-        {isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
-      </Link>
-    );
+  useWebSocket(user?.family_id, handleWSMessage);
+
+  const handleLogout = () => {
+    logout();
+    navigate('/');
   };
 
   return (
-    <div className="min-h-screen bg-cream flex">
-      {/* Mobile menu button */}
-      <button
-        onClick={() => setSidebarOpen(!sidebarOpen)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 bg-warm-white rounded-xl shadow-card"
-        data-testid="mobile-menu-toggle"
-      >
-        {sidebarOpen ? <X className="w-6 h-6 text-navy" /> : <Menu className="w-6 h-6 text-navy" />}
-      </button>
+    <div className="flex h-screen bg-background dark:bg-gray-900 transition-colors" data-testid="app-layout">
+      {/* Desktop Sidebar */}
+      <aside className="hidden lg:flex flex-col w-64 bg-warm-white dark:bg-gray-800 border-r border-sunny/30 dark:border-gray-700 transition-colors">
+        <div className="p-6 border-b border-sunny/30 dark:border-gray-700">
+          <h1 className="text-2xl font-heading font-bold text-terracotta">Family Hub</h1>
+          {family && <p className="text-sm text-navy-light dark:text-gray-400 font-handwritten text-lg">{family.name}</p>}
+        </div>
 
-      {/* Sidebar */}
-      <aside
-        className={`
-          fixed inset-y-0 left-0 z-40 w-64 bg-warm-white border-r border-sunny/30
-          transform transition-transform duration-300 ease-in-out
-          lg:relative lg:translate-x-0
-          ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
-        `}
-      >
-        <div className="flex flex-col h-full">
-          {/* Header */}
-          <div className="p-6 border-b border-sunny/30">
-            <Link to="/dashboard" className="flex items-center gap-3" data-testid="sidebar-logo">
-              <div className="w-10 h-10 bg-terracotta rounded-xl flex items-center justify-center shadow-sm">
-                <Home className="w-5 h-5 text-white" />
-              </div>
-              <div>
-                <h1 className="font-heading font-bold text-navy text-lg">
-                  {family?.name || 'Family Hub'}
-                </h1>
-                <p className="text-xs text-navy-light">Your digital home</p>
-              </div>
-            </Link>
-          </div>
+        <nav className="flex-1 overflow-y-auto p-3">
+          <ul className="space-y-1">
+            {navItems.map((item) => {
+              const isActive = location.pathname === item.path;
+              return (
+                <li key={item.path}>
+                  <Link
+                    to={item.path}
+                    className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-200 ${
+                      isActive
+                        ? 'bg-terracotta text-white shadow-warm'
+                        : 'text-navy dark:text-gray-300 hover:bg-cream dark:hover:bg-gray-700'
+                    }`}
+                    data-testid={`nav-${item.label.toLowerCase()}`}
+                  >
+                    <item.icon className="w-5 h-5" />
+                    {item.label}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </nav>
 
-          {/* Navigation */}
-          <ScrollArea className="flex-1 px-3 py-4">
-            <nav className="space-y-1">
-              {navItems.map((item) => (
-                <NavLink key={item.path} item={item} />
-              ))}
-            </nav>
-          </ScrollArea>
-
-          {/* User section */}
-          <div className="p-4 border-t border-sunny/30">
-            <div className="flex items-center gap-3 mb-3">
-              <Avatar className="w-10 h-10 border-2 border-sunny">
-                <AvatarImage src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.avatar_seed || user?.id}`} />
-                <AvatarFallback className="bg-sage text-white">
-                  {user?.name?.charAt(0) || 'U'}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-navy truncate">{user?.name || 'Family Member'}</p>
-                <p className="text-xs text-navy-light truncate capitalize">{user?.role || 'member'} • {user?.points || 0} pts</p>
-              </div>
+        <div className="p-4 border-t border-sunny/30 dark:border-gray-700 space-y-2">
+          <button
+            onClick={toggleDarkMode}
+            className="flex items-center gap-3 w-full px-4 py-2 rounded-xl text-sm text-navy dark:text-gray-300 hover:bg-cream dark:hover:bg-gray-700 transition-colors"
+            data-testid="dark-mode-toggle"
+          >
+            {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            {darkMode ? 'Light Mode' : 'Dark Mode'}
+          </button>
+          <div className="flex items-center gap-3 px-4 py-2 text-sm">
+            <div className="w-8 h-8 rounded-full bg-terracotta text-white flex items-center justify-center text-sm font-bold">
+              {user?.name?.charAt(0) || '?'}
             </div>
-            <Button
-              variant="ghost"
-              onClick={logout}
-              className="w-full justify-start text-navy-light hover:text-terracotta hover:bg-terracotta/10"
-              data-testid="logout-btn"
-            >
-              <LogOut className="w-4 h-4 mr-2" />
-              Sign Out
-            </Button>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-navy dark:text-gray-200 truncate">{user?.name}</p>
+              <p className="text-xs text-navy-light dark:text-gray-400 capitalize">{user?.role}</p>
+            </div>
+            <button onClick={handleLogout} className="text-navy-light dark:text-gray-400 hover:text-red-500" data-testid="logout-btn">
+              <LogOut className="w-5 h-5" />
+            </button>
           </div>
         </div>
       </aside>
 
-      {/* Mobile overlay */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-navy/30 z-30 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
+      {/* Mobile Header & Menu */}
+      <div className="flex-1 flex flex-col min-w-0">
+        <header className="lg:hidden flex items-center justify-between p-4 bg-warm-white dark:bg-gray-800 border-b border-sunny/30 dark:border-gray-700 transition-colors">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+              className="text-navy dark:text-gray-300"
+              data-testid="mobile-menu-btn"
+            >
+              {mobileMenuOpen ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+            </button>
+            <h1 className="text-xl font-heading font-bold text-terracotta">Family Hub</h1>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={toggleDarkMode}
+              className="text-navy dark:text-gray-300 p-2 rounded-lg hover:bg-cream dark:hover:bg-gray-700"
+              data-testid="mobile-dark-mode-toggle"
+            >
+              {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+            </button>
+            <button onClick={handleLogout} className="text-navy-light dark:text-gray-400" data-testid="mobile-logout-btn">
+              <LogOut className="w-5 h-5" />
+            </button>
+          </div>
+        </header>
 
-      {/* Main content */}
-      <main className="flex-1 min-h-screen overflow-auto pb-20 lg:pb-0">
-        <div className="p-4 lg:p-8 pt-16 lg:pt-8">
-          {children}
-        </div>
-      </main>
+        {/* Mobile Nav Overlay */}
+        {mobileMenuOpen && (
+          <div className="lg:hidden fixed inset-0 z-50 bg-black/50" onClick={() => setMobileMenuOpen(false)}>
+            <div className="w-72 h-full bg-warm-white dark:bg-gray-800 p-4 overflow-y-auto transition-colors" onClick={e => e.stopPropagation()}>
+              <div className="mb-4 pb-3 border-b border-sunny/30 dark:border-gray-700">
+                <h2 className="font-heading font-bold text-terracotta text-xl">Family Hub</h2>
+                {family && <p className="text-sm text-navy-light dark:text-gray-400 font-handwritten">{family.name}</p>}
+              </div>
+              <ul className="space-y-1">
+                {navItems.map((item) => {
+                  const isActive = location.pathname === item.path;
+                  return (
+                    <li key={item.path}>
+                      <Link
+                        to={item.path}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-colors ${
+                          isActive
+                            ? 'bg-terracotta text-white'
+                            : 'text-navy dark:text-gray-300 hover:bg-cream dark:hover:bg-gray-700'
+                        }`}
+                      >
+                        <item.icon className="w-5 h-5" />
+                        {item.label}
+                      </Link>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          </div>
+        )}
 
-      {/* Mobile bottom navigation - Show 5 most used items */}
-      <nav className="mobile-nav lg:hidden" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
-        <div className="flex justify-around py-2 px-1">
-          {[
-            navItems[0],  // Dashboard
-            navItems[1],  // Calendar
-            navItems[3],  // Tasks
-            navItems[4],  // Chores
-            navItems[13]  // Settings
-          ].map((item) => {
-            const Icon = item.icon;
-            const isActive = location.pathname === item.path;
-            return (
-              <Link
-                key={item.path}
-                to={item.path}
-                className={`mobile-nav-item ${isActive ? 'active' : 'text-navy-light'}`}
-                data-testid={`mobile-nav-${item.path.slice(1)}`}
-              >
-                <div className={`mobile-nav-icon p-2 rounded-xl ${isActive ? 'bg-terracotta/10' : ''}`}>
-                  <Icon className="w-5 h-5" />
-                </div>
-                <span className="text-xs">{item.label.split(' ')[0]}</span>
-              </Link>
-            );
-          })}
-        </div>
-      </nav>
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto p-4 sm:p-6 lg:p-8 bg-background dark:bg-gray-900 transition-colors">
+          <div className="max-w-6xl mx-auto">
+            {children}
+          </div>
+        </main>
+      </div>
     </div>
   );
 };

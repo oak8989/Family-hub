@@ -261,3 +261,85 @@
 .hide-emergent-badge #emergent-badge {
     display: none !important;
 }
+
+
+/* ======================== DARK MODE ======================== */
+
+/* Core dark overrides */
+.dark .card-cozy {
+    @apply bg-gray-800 border-gray-700;
+    box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.3);
+}
+
+.dark .card-cozy:hover {
+    box-shadow: 0 8px 30px -5px rgba(224, 122, 95, 0.15);
+}
+
+.dark .card-base {
+    @apply bg-gray-800 border-gray-700;
+}
+
+.dark .input-cozy {
+    @apply bg-gray-700 border-gray-600 text-gray-200 placeholder:text-gray-500;
+}
+
+.dark .bg-cream {
+    background-color: hsl(220, 15%, 16%) !important;
+}
+
+.dark .bg-warm-white {
+    background-color: hsl(220, 15%, 13%) !important;
+}
+
+.dark .text-navy {
+    color: hsl(210, 20%, 88%) !important;
+}
+
+.dark .text-navy-light {
+    color: hsl(210, 15%, 60%) !important;
+}
+
+.dark .border-sunny\/30 {
+    border-color: hsl(220, 12%, 22%) !important;
+}
+
+.dark .border-sunny\/50 {
+    border-color: hsl(220, 12%, 22%) !important;
+}
+
+.dark .btn-outline {
+    @apply border-gray-600 text-gray-300;
+}
+
+.dark .btn-outline:hover {
+    @apply bg-gray-700 text-gray-100;
+}
+
+.dark .bg-sunny\/20 {
+    background-color: hsl(42, 54%, 20%) !important;
+}
+
+.dark .bg-terracotta\/10 {
+    background-color: rgba(224, 122, 95, 0.15) !important;
+}
+
+.dark .bg-sage\/10,
+.dark .bg-sage\/20 {
+    background-color: rgba(129, 178, 154, 0.15) !important;
+}
+
+.dark .mobile-nav {
+    @apply bg-gray-800/95 border-gray-700;
+}
+
+.dark .spinner {
+    @apply border-gray-600 border-t-terracotta;
+}
+
+.dark .scanner-overlay {
+    background: rgba(0, 0, 0, 0.85);
+}
+
+.dark .modal-backdrop {
+    @apply bg-black/60;
+}

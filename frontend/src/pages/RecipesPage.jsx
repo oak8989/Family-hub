@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { BookOpen, Plus, Trash2, Edit2, Clock, Users, Eye } from 'lucide-react';
+import { BookOpen, Plus, Trash2, Edit2, Clock, Users, Eye, Link2, Loader2 } from 'lucide-react';
 import { recipesAPI } from '../lib/api';
 import { toast } from 'sonner';
 import { Button } from '../components/ui/button';
@@ -16,6 +16,9 @@ const RecipesPage = () => {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const [importUrl, setImportUrl] = useState('');
+  const [importing, setImporting] = useState(false);
   const [editingRecipe, setEditingRecipe] = useState(null);
   const [viewingRecipe, setViewingRecipe] = useState(null);
   const [filterCategory, setFilterCategory] = useState('all');
@@ -121,6 +124,41 @@ const RecipesPage = () => {
     ? recipes 
     : recipes.filter(r => r.category === filterCategory);
 
+  const handleImportFromURL = async () => {
+    if (!importUrl.trim()) {
+      toast.error('Please enter a URL');
+      return;
+    }
+    setImporting(true);
+    try {
+      const response = await recipesAPI.importFromURL(importUrl);
+      const data = response.data;
+      setForm({
+        name: data.name || '',
+        description: data.description || '',
+        ingredients: (data.ingredients || []).join('\n'),
+        instructions: (data.instructions || []).join('\n'),
+        prep_time: data.prep_time || '',
+        cook_time: data.cook_time || '',
+        servings: data.servings || 4,
+        category: categories.includes(data.category) ? data.category : 'Main Course',
+        image_url: data.image_url || ''
+      });
+      setImportDialogOpen(false);
+      setDialogOpen(true);
+      setImportUrl('');
+      if (data.ingredients?.length > 0) {
+        toast.success(`Imported "${data.name}" - review and save!`);
+      } else {
+        toast.info('Basic info imported. Some sites block scraping - fill in details manually.');
+      }
+    } catch (error) {
+      const detail = error.response?.data?.detail || 'Failed to import recipe';
+      toast.error(detail);
+    }
+    setImporting(false);
+  };
+
   return (
     <div className="space-y-6" data-testid="recipes-page">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
@@ -144,6 +182,52 @@ const RecipesPage = () => {
               ))}
             </SelectContent>
           </Select>
+
+          {/* Import from URL */}
+          <Dialog open={importDialogOpen} onOpenChange={setImportDialogOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" className="border-pink-300 text-pink-600 hover:bg-pink-50 dark:border-pink-700 dark:text-pink-400 dark:hover:bg-pink-900/20" data-testid="import-url-btn">
+                <Link2 className="w-4 h-4 mr-2" />
+                Import URL
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="bg-warm-white dark:bg-gray-800 border-sunny/50 dark:border-gray-700">
+              <DialogHeader>
+                <DialogTitle className="font-heading text-navy dark:text-gray-200">Import Recipe from URL</DialogTitle>
+              </DialogHeader>
+              <div className="space-y-4 pt-2">
+                <p className="text-sm text-navy-light dark:text-gray-400">
+                  Paste a recipe URL from your favorite food blog or recipe site. We'll try to extract the recipe details automatically.
+                </p>
+                <Input
+                  value={importUrl}
+                  onChange={(e) => setImportUrl(e.target.value)}
+                  placeholder="https://www.food.com/recipe/..."
+                  className="input-cozy"
+                  data-testid="import-url-input"
+                  onKeyDown={(e) => e.key === 'Enter' && handleImportFromURL()}
+                />
+                <p className="text-xs text-navy-light dark:text-gray-500">
+                  Works best with sites using standard recipe markup (Schema.org/JSON-LD).
+                </p>
+                <div className="flex gap-3">
+                  <Button
+                    onClick={handleImportFromURL}
+                    disabled={importing || !importUrl.trim()}
+                    className="btn-primary flex-1"
+                    data-testid="confirm-import-btn"
+                  >
+                    {importing ? (
+                      <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Importing...</>
+                    ) : (
+                      <><Link2 className="w-4 h-4 mr-2" /> Import Recipe</>
+                    )}
+                  </Button>
+                  <Button variant="outline" onClick={() => setImportDialogOpen(false)}>Cancel</Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
           
           <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
             <DialogTrigger asChild>

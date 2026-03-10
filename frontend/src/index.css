@@ -38,6 +38,33 @@
     --radius: 1rem;
 }
 
+.dark {
+    --background: 220 15% 10%;
+    --foreground: 210 20% 88%;
+    --card: 220 15% 13%;
+    --card-foreground: 210 20% 88%;
+    --popover: 220 15% 13%;
+    --popover-foreground: 210 20% 88%;
+    --primary: 14 66% 63%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 152 32% 45%;
+    --secondary-foreground: 0 0% 100%;
+    --muted: 220 12% 20%;
+    --muted-foreground: 210 15% 65%;
+    --accent: 220 12% 20%;
+    --accent-foreground: 210 20% 88%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 12% 22%;
+    --input: 220 12% 22%;
+    --ring: 14 66% 63%;
+}
+
+.dark body {
+    background-color: hsl(220, 15%, 10%);
+    color: hsl(210, 20%, 88%);
+}
+
 body {
     margin: 0;
     font-family: 'DM Sans', -apple-system, BlinkMacSystemFont, sans-serif;

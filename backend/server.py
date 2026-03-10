@@ -31,6 +31,7 @@ from routers.pantry import router as pantry_router
 from routers.settings import router as settings_router
 from routers.suggestions import router as suggestions_router
 from routers.utilities import router as utilities_router
+from routers.websocket import router as websocket_router
 
 app.include_router(auth_router)
 app.include_router(family_router)
@@ -48,6 +49,7 @@ app.include_router(pantry_router)
 app.include_router(settings_router)
 app.include_router(suggestions_router)
 app.include_router(utilities_router)
+app.include_router(websocket_router)
 
 
 # Health & root

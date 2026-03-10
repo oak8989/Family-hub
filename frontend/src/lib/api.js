@@ -167,6 +167,7 @@ export const recipesAPI = {
   createRecipe: (data) => api.post('/recipes', data),
   updateRecipe: (id, data) => api.put(`/recipes/${id}`, data),
   deleteRecipe: (id) => api.delete(`/recipes/${id}`),
+  importFromURL: (url) => api.post('/recipes/import-url', { url }),
 };
 
 // Grocery List

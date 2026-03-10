@@ -124,7 +124,7 @@ const AuthPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-cream flex">
+    <div className="min-h-screen bg-cream dark:bg-gray-900 flex">
       {/* Left side - Hero image */}
       <div className="hidden lg:flex lg:w-1/2 relative overflow-hidden">
         <img
