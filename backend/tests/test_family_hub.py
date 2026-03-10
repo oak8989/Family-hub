@@ -475,35 +475,17 @@ class TestSettingsModule:
     
     @pytest.fixture(scope="class")
     def auth_setup(self):
-        """Setup user with family for settings testing"""
+        """Setup user with family for settings testing - use register with family_name"""
         user_email = f"settings_{uuid.uuid4().hex[:8]}@family.com"
-        # Register
-        requests.post(f"{BASE_URL}/api/auth/register", json={
+        # Register with family_name to create family with proper settings
+        reg_resp = requests.post(f"{BASE_URL}/api/auth/register", json={
             "name": "Settings Tester",
             "email": user_email,
             "password": TEST_USER_PASSWORD,
-            "role": "owner"
+            "family_name": "Settings Test Family"
         })
-        # Login
-        login_resp = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": user_email,
-            "password": TEST_USER_PASSWORD
-        })
-        token = login_resp.json()["token"]
-        
-        # Create family
-        headers = {"Authorization": f"Bearer {token}"}
-        requests.post(f"{BASE_URL}/api/family/create", 
-            json={"name": "Settings Test Family"},
-            headers=headers
-        )
-        
-        # Re-login to get updated token with family_id
-        login_resp = requests.post(f"{BASE_URL}/api/auth/login", json={
-            "email": user_email,
-            "password": TEST_USER_PASSWORD
-        })
-        token = login_resp.json()["token"]
+        assert reg_resp.status_code == 200
+        token = reg_resp.json()["token"]
         headers = {"Authorization": f"Bearer {token}"}
         
         return {"token": token, "headers": headers}

@@ -991,7 +991,7 @@ class TestMemberManagement(TestSetup):
             "name": "TEST_Role Change Member",
             "role": "child"
         }, headers=headers)
-        member_id = add_resp.json()["user_id"]
+        member_id = add_resp.json()["id"]
         
         # Change role to member
         change_resp = requests.put(f"{BASE_URL}/api/family/members/{member_id}/role", json={
@@ -1022,7 +1022,7 @@ class TestMemberManagement(TestSetup):
             "name": "TEST_Remove Member",
             "role": "child"
         }, headers=headers)
-        member_id = add_resp.json()["user_id"]
+        member_id = add_resp.json()["id"]
         
         # Remove member
         remove_resp = requests.delete(f"{BASE_URL}/api/family/members/{member_id}", headers=headers)
@@ -1048,7 +1048,7 @@ class TestMemberManagement(TestSetup):
             "name": "TEST_Regen PIN Member",
             "role": "child"
         }, headers=headers)
-        member_id = add_resp.json()["user_id"]
+        member_id = add_resp.json()["id"]
         old_pin = add_resp.json()["user_pin"]
         
         # Regenerate PIN

@@ -65,7 +65,7 @@ class TestPermissionSetup:
         )
         assert parent_resp.status_code == 200
         parent_pin = parent_resp.json()["user_pin"]
-        parent_id = parent_resp.json()["user_id"]
+        parent_id = parent_resp.json()["id"]
         
         # Add family member
         member_resp = requests.post(f"{BASE_URL}/api/family/add-member",
@@ -74,7 +74,7 @@ class TestPermissionSetup:
         )
         assert member_resp.status_code == 200
         member_pin = member_resp.json()["user_pin"]
-        member_id = member_resp.json()["user_id"]
+        member_id = member_resp.json()["id"]
         
         # Add child member
         child_resp = requests.post(f"{BASE_URL}/api/family/add-member",
@@ -83,7 +83,7 @@ class TestPermissionSetup:
         )
         assert child_resp.status_code == 200
         child_pin = child_resp.json()["user_pin"]
-        child_id = child_resp.json()["user_id"]
+        child_id = child_resp.json()["id"]
         
         # Get tokens for each role via PIN login
         parent_login = requests.post(f"{BASE_URL}/api/auth/user-pin-login", json={"pin": parent_pin})
@@ -509,7 +509,7 @@ class TestChoreCompletionPoints:
             json={"name": "Points Child", "role": "child"},
             headers=owner_headers
         )
-        child_id = child_resp.json()["user_id"]
+        child_id = child_resp.json()["id"]
         child_pin = child_resp.json()["user_pin"]
         
         # Get child's initial points

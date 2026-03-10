@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Package, Plus, Trash2, Edit2, Scan, X, AlertTriangle, Camera } from 'lucide-react';
+import { Package, Plus, Trash2, Edit2, Scan, X, AlertTriangle, Camera, Loader2, ExternalLink } from 'lucide-react';
 import { pantryAPI } from '../lib/api';
 import { toast } from 'sonner';
 import { Button } from '../components/ui/button';
@@ -16,6 +16,8 @@ const PantryPage = () => {
   const [loading, setLoading] = useState(true);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
+  const [lookingUp, setLookingUp] = useState(false);
+  const [scanResult, setScanResult] = useState(null);
   const [editingItem, setEditingItem] = useState(null);
   const [filterCategory, setFilterCategory] = useState('all');
   const [form, setForm] = useState({
@@ -55,7 +57,6 @@ const PantryPage = () => {
       toast.error('Please enter an item name');
       return;
     }
-
     try {
       if (editingItem) {
         await pantryAPI.updateItem(editingItem.id, { ...form, id: editingItem.id });
@@ -64,7 +65,6 @@ const PantryPage = () => {
         await pantryAPI.createItem(form);
         toast.success('Item added!');
       }
-      
       setDialogOpen(false);
       resetForm();
       loadItems();
@@ -85,6 +85,7 @@ const PantryPage = () => {
 
   const resetForm = () => {
     setEditingItem(null);
+    setScanResult(null);
     setForm({
       name: '',
       barcode: '',
@@ -108,53 +109,79 @@ const PantryPage = () => {
     setDialogOpen(true);
   };
 
+  const lookupBarcode = async (barcode) => {
+    setLookingUp(true);
+    setScanResult(null);
+    try {
+      const response = await pantryAPI.lookupBarcode(barcode);
+      const data = response.data;
+      if (data.found) {
+        setScanResult(data);
+        setForm(prev => ({
+          ...prev,
+          name: data.name || prev.name,
+          barcode: barcode,
+          category: mapCategory(data.category)
+        }));
+        toast.success(`Found: ${data.name}`);
+      } else {
+        setScanResult({ found: false, barcode });
+        setForm(prev => ({ ...prev, barcode }));
+        toast.info('Product not found in database. Enter details manually.');
+      }
+    } catch {
+      setScanResult({ found: false, barcode });
+      setForm(prev => ({ ...prev, barcode }));
+      toast.info('Product not found. Enter details manually.');
+    }
+    setLookingUp(false);
+  };
+
+  const mapCategory = (rawCategory) => {
+    if (!rawCategory) return 'Other';
+    const lower = rawCategory.toLowerCase();
+    for (const cat of categories) {
+      if (lower.includes(cat.toLowerCase())) return cat;
+    }
+    if (lower.includes('drink') || lower.includes('juice') || lower.includes('water') || lower.includes('soda')) return 'Beverages';
+    if (lower.includes('milk') || lower.includes('cheese') || lower.includes('yogurt') || lower.includes('butter')) return 'Dairy';
+    if (lower.includes('fruit') || lower.includes('vegetable')) return 'Produce';
+    if (lower.includes('chip') || lower.includes('cookie') || lower.includes('candy')) return 'Snacks';
+    if (lower.includes('sauce') || lower.includes('ketchup') || lower.includes('mustard')) return 'Condiments';
+    return 'Other';
+  };
+
   const startScanner = useCallback(async () => {
     setScannerOpen(true);
-    
+    setScanResult(null);
+
     try {
       const codeReader = new BrowserMultiFormatReader();
       codeReaderRef.current = codeReader;
-      
       const videoInputDevices = await codeReader.listVideoInputDevices();
-      
+
       if (videoInputDevices.length === 0) {
         toast.error('No camera found');
         setScannerOpen(false);
         return;
       }
 
-      // Prefer back camera
-      const selectedDevice = videoInputDevices.find(device => 
-        device.label.toLowerCase().includes('back') || 
+      const selectedDevice = videoInputDevices.find(device =>
+        device.label.toLowerCase().includes('back') ||
         device.label.toLowerCase().includes('rear')
       ) || videoInputDevices[0];
 
       await codeReader.decodeFromVideoDevice(
         selectedDevice.deviceId,
         videoRef.current,
-        async (result, error) => {
+        async (result) => {
           if (result) {
             const barcode = result.getText();
-            toast.success(`Scanned: ${barcode}`);
-            
-            // Look up the barcode
-            try {
-              const response = await pantryAPI.lookupBarcode(barcode);
-              setForm(prev => ({
-                ...prev,
-                name: response.data.name || `Product ${barcode}`,
-                barcode: barcode,
-                category: response.data.category || 'Other'
-              }));
-            } catch {
-              setForm(prev => ({
-                ...prev,
-                barcode: barcode
-              }));
-            }
-            
+            // Immediately stop camera
             stopScanner();
+            // Immediately search for the product
             setDialogOpen(true);
+            await lookupBarcode(barcode);
           }
         }
       );
@@ -177,7 +204,6 @@ const PantryPage = () => {
     ? items
     : items.filter(i => i.category === filterCategory);
 
-  // Group items by category
   const groupedItems = filteredItems.reduce((acc, item) => {
     const cat = item.category || 'Other';
     if (!acc[cat]) acc[cat] = [];
@@ -185,13 +211,11 @@ const PantryPage = () => {
     return acc;
   }, {});
 
-  // Check for expiring items (within 3 days)
   const isExpiringSoon = (date) => {
     if (!date) return false;
     const expiry = new Date(date);
     const today = new Date();
-    const diffTime = expiry - today;
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    const diffDays = Math.ceil((expiry - today) / (1000 * 60 * 60 * 24));
     return diffDays <= 3 && diffDays >= 0;
   };
 
@@ -210,7 +234,7 @@ const PantryPage = () => {
           </h1>
           <p className="text-navy-light mt-1 text-sm sm:text-base">{items.length} items in your pantry</p>
         </div>
-        
+
         <div className="flex flex-col sm:flex-row gap-3">
           <Button
             variant="outline"
@@ -221,7 +245,7 @@ const PantryPage = () => {
             <Scan className="w-4 h-4 mr-2" />
             Scan Barcode
           </Button>
-          
+
           <Dialog open={dialogOpen} onOpenChange={(open) => { setDialogOpen(open); if (!open) resetForm(); }}>
             <DialogTrigger asChild>
               <Button className="btn-primary w-full sm:w-auto" data-testid="add-pantry-btn">
@@ -229,12 +253,53 @@ const PantryPage = () => {
                 Add Item
               </Button>
             </DialogTrigger>
-            <DialogContent className="bg-warm-white border-sunny/50">
+            <DialogContent className="bg-warm-white border-sunny/50 max-h-[90vh] overflow-y-auto">
               <DialogHeader>
                 <DialogTitle className="font-heading text-navy">
                   {editingItem ? 'Edit Item' : 'Add Pantry Item'}
                 </DialogTitle>
               </DialogHeader>
+
+              {/* Scan Result Card */}
+              {lookingUp && (
+                <div className="flex items-center gap-3 p-4 bg-amber-50 rounded-xl border border-amber-200" data-testid="barcode-searching">
+                  <Loader2 className="w-5 h-5 text-amber-600 animate-spin" />
+                  <span className="text-amber-800 font-medium">Searching for product...</span>
+                </div>
+              )}
+
+              {scanResult && scanResult.found && (
+                <div className="p-4 bg-green-50 rounded-xl border border-green-200" data-testid="barcode-found">
+                  <div className="flex items-start gap-3">
+                    {scanResult.image && (
+                      <img src={scanResult.image} alt="" className="w-12 h-12 rounded-lg object-cover" />
+                    )}
+                    <div className="flex-1">
+                      <p className="font-medium text-green-800">{scanResult.name}</p>
+                      {scanResult.brand && <p className="text-sm text-green-600">{scanResult.brand}</p>}
+                      <p className="text-xs text-green-500 mt-1">Found via {scanResult.source}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {scanResult && !scanResult.found && (
+                <div className="p-4 bg-amber-50 rounded-xl border border-amber-200" data-testid="barcode-not-found">
+                  <p className="text-amber-800 font-medium text-sm">Product not found for barcode: {scanResult.barcode}</p>
+                  <p className="text-amber-600 text-xs mt-1">Enter the product details manually below.</p>
+                  <a
+                    href={`https://www.google.com/search?q=barcode+${scanResult.barcode}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-xs text-blue-600 hover:underline mt-2"
+                    data-testid="google-search-barcode"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    Search Google for this barcode
+                  </a>
+                </div>
+              )}
+
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium text-navy mb-2">Item Name</label>
@@ -246,7 +311,7 @@ const PantryPage = () => {
                     data-testid="pantry-name-input"
                   />
                 </div>
-                
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-navy mb-2">Quantity</label>
@@ -273,7 +338,7 @@ const PantryPage = () => {
                     </Select>
                   </div>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-navy mb-2">Category</label>
                   <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
@@ -287,7 +352,7 @@ const PantryPage = () => {
                     </SelectContent>
                   </Select>
                 </div>
-                
+
                 <div>
                   <label className="block text-sm font-medium text-navy mb-2">Expiry Date (optional)</label>
                   <Input
@@ -313,29 +378,16 @@ const PantryPage = () => {
                     <Button
                       type="button"
                       variant="outline"
-                      onClick={async () => {
-                        if (form.barcode) {
-                          try {
-                            const response = await pantryAPI.lookupBarcode(form.barcode);
-                            setForm(prev => ({
-                              ...prev,
-                              name: response.data.name || prev.name,
-                              category: response.data.category || prev.category
-                            }));
-                            toast.success('Product found!');
-                          } catch {
-                            toast.info('Product not found in database');
-                          }
-                        }
-                      }}
+                      disabled={lookingUp || !form.barcode}
+                      onClick={() => lookupBarcode(form.barcode)}
                       className="border-amber-300"
                       data-testid="lookup-barcode-btn"
                     >
-                      Lookup
+                      {lookingUp ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Lookup'}
                     </Button>
                   </div>
                 </div>
-                
+
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Button type="submit" className="btn-primary flex-1" data-testid="save-pantry-btn">
                     {editingItem ? 'Update' : 'Add'} Item
@@ -414,6 +466,11 @@ const PantryPage = () => {
                         <span className="text-sm text-navy-light">
                           {item.quantity} {item.unit}
                         </span>
+                        {item.barcode && (
+                          <span className="text-xs px-2 py-0.5 rounded-full bg-gray-100 text-gray-500">
+                            {item.barcode}
+                          </span>
+                        )}
                         {item.expiry_date && (
                           <span className={`text-xs px-2 py-0.5 rounded-full flex items-center gap-1 ${
                             isExpired(item.expiry_date) ? 'bg-red-100 text-red-600' :
@@ -484,7 +541,7 @@ const PantryPage = () => {
                 <div className="scanner-line" />
               </div>
               <p className="text-center text-navy-light mt-4 text-sm">
-                Point your camera at a barcode
+                Point your camera at a barcode — it will close automatically
               </p>
             </div>
           </div>
