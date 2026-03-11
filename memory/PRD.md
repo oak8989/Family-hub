@@ -6,7 +6,7 @@ Self-hosted family organization app. Single Docker container with embedded Mongo
 ## Tech Stack
 - **Frontend:** React 18, Tailwind CSS (dark mode), Shadcn UI, Recharts, @zxing/library
 - **Backend:** FastAPI (18 modular routers), Python 3.11, pywebpush, BeautifulSoup4
-- **Database:** MongoDB 7.0 (embedded in Docker)
+- **Database:** MongoDB 7.0 (embedded in Docker), motor 3.7.1 + pymongo 4.9+
 - **Real-time:** WebSocket via FastAPI
 - **Offline:** Service Worker (cache-first static, network-first API)
 - **Push:** Web Push Protocol via pywebpush + VAPID keys
