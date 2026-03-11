@@ -5,13 +5,12 @@ Self-hosted family organization app. Single Docker container with embedded Mongo
 
 ## Tech Stack
 - **Frontend:** React 18, Tailwind CSS (dark mode), Shadcn UI, Recharts, @zxing/library
-- **Backend:** FastAPI (17 modular routers), Python 3.11, pywebpush, BeautifulSoup4
+- **Backend:** FastAPI (18 modular routers), Python 3.11, pywebpush, BeautifulSoup4
 - **Database:** MongoDB 7.0 (embedded in Docker)
 - **Real-time:** WebSocket via FastAPI
 - **Offline:** Service Worker (cache-first static, network-first API)
 - **Push:** Web Push Protocol via pywebpush + VAPID keys
 - **AI:** Emergent LLM (GPT-4o-mini) + OpenAI fallback
-- **Admin:** FastAPI session-based auth (port 8050)
 
 ## All Implemented Features
 
@@ -43,27 +42,51 @@ Self-hosted family organization app. Single Docker container with embedded Mongo
 - [x] Mobile responsive
 - [x] Role-based access (Owner > Parent > Member > Child)
 
-### Admin
-- [x] Admin Portal (port 8050, session-based login)
-- [x] SMTP, Google Calendar, OpenAI, server config
+### Admin / Server Management (Merged into Owner Settings)
+- [x] Server status dashboard (Backend, Database, SMTP, OpenAI, Google)
+- [x] SMTP email configuration + test connection
+- [x] Google Calendar API configuration
+- [x] OpenAI API key configuration
+- [x] Server config (JWT secret, CORS, DB name)
+- [x] Server log viewer (backend, frontend, error logs)
+- [x] Server restart capability
+- [x] All admin features gated to Owner role only (403 for non-owners)
 
 ## Docker
-- Single container: MongoDB + FastAPI + Admin Portal
+- Single container: MongoDB + FastAPI
 - Supervisor manages all processes
 - Backend runs from `/app/backend` directory
-- Ports: 8001 (app), 8050 (admin)
+- Port: 8001 (app)
 - HEALTHCHECK on `/api/health`
 
 ## Code Architecture
 ```
 /app/backend/
-├── server.py, database.py, auth.py, admin_portal.py
+├── server.py, database.py, auth.py
 ├── models/schemas.py
-└── routers/ (auth, family, calendar, shopping, tasks, chores,
+├── services/push.py
+└── routers/ (admin, auth, family, calendar, shopping, tasks, chores,
     notes, budget, meals, recipes, grocery, contacts, pantry,
     settings, suggestions, utilities, websocket)
 ```
 
+## Key API Endpoints
+- `/api/admin/*` — Owner-only server management (status, config, logs, reboot)
+- `/api/auth/*` — Registration, login, PIN login
+- `/api/family/*` — Family CRUD, member management
+- `/api/calendar/*`, `/api/shopping/*`, etc. — Module CRUD
+- `/api/ws` — WebSocket
+- `/api/notifications/*` — Push subscriptions
+- `/api/export/*`, `/api/import/*` — Data backup/restore
+
+## Removed
+- [x] admin_portal.py (separate Flask/FastAPI admin on port 8050) — MERGED into main app
+- [x] Port 8050 exposure in Dockerfile
+- [x] Separate admin supervisor config
+
 ## Backlog
 - [ ] Recurring chores automation
 - [ ] Multi-family hub support
+- [ ] Enhance AI Meal Suggestions with dietary restrictions
+- [ ] More granular dark mode theme controls
+- [ ] CSS refactoring (dark mode overrides → Tailwind dark: variants)
