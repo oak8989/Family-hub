@@ -4,7 +4,7 @@ from models.schemas import Recipe
 from auth import get_current_user
 from database import db
 from pydantic import BaseModel
-import requests
+import httpx
 from bs4 import BeautifulSoup
 import json
 import re
@@ -17,15 +17,11 @@ BROWSER_HEADERS = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36',
     'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
     'Accept-Language': 'en-US,en;q=0.9',
-    'Accept-Encoding': 'gzip, deflate, br',
     'Sec-Fetch-Dest': 'document',
     'Sec-Fetch-Mode': 'navigate',
     'Sec-Fetch-Site': 'none',
     'Sec-Fetch-User': '?1',
     'Upgrade-Insecure-Requests': '1',
-    'sec-ch-ua': '"Google Chrome";v="131", "Chromium";v="131"',
-    'sec-ch-ua-mobile': '?0',
-    'sec-ch-ua-platform': '"Windows"',
 }
 
 
@@ -74,6 +70,14 @@ class ImportURLRequest(BaseModel):
     url: str
 
 
+def _is_recipe_type(t):
+    if isinstance(t, str):
+        return t == 'Recipe'
+    if isinstance(t, list):
+        return 'Recipe' in t
+    return False
+
+
 def extract_json_ld_recipe(soup):
     """Extract recipe from JSON-LD structured data (Schema.org)."""
     for script in soup.find_all('script', type='application/ld+json'):
@@ -81,16 +85,16 @@ def extract_json_ld_recipe(soup):
             data = json.loads(script.string)
             if isinstance(data, list):
                 for item in data:
-                    if item.get('@type') == 'Recipe':
+                    if isinstance(item, dict) and _is_recipe_type(item.get('@type')):
                         return item
             elif isinstance(data, dict):
-                if data.get('@type') == 'Recipe':
+                if _is_recipe_type(data.get('@type')):
                     return data
                 if '@graph' in data:
                     for item in data['@graph']:
-                        if item.get('@type') == 'Recipe':
+                        if isinstance(item, dict) and _is_recipe_type(item.get('@type')):
                             return item
-        except (json.JSONDecodeError, TypeError):
+        except (json.JSONDecodeError, TypeError, AttributeError):
             continue
     return None
 
@@ -225,16 +229,18 @@ async def import_recipe_from_url(req: ImportURLRequest, user: dict = Depends(get
 
     html = None
 
-    # Attempt 1: requests with full browser headers
+    # Attempt 1: httpx with HTTP/2 (best compatibility)
     try:
-        session = requests.Session()
-        response = session.get(url, headers=BROWSER_HEADERS, timeout=15, allow_redirects=True)
-        response.raise_for_status()
-        html = response.text
-    except requests.RequestException as e:
-        logger.warning(f"Primary fetch failed for {url}: {e}")
+        with httpx.Client(http2=True, follow_redirects=True, timeout=15) as client:
+            response = client.get(url, headers=BROWSER_HEADERS)
+            if response.status_code < 400:
+                html = response.text
+            else:
+                logger.warning(f"httpx got {response.status_code} for {url}")
+    except Exception as e:
+        logger.warning(f"httpx fetch failed for {url}: {e}")
 
-    # Attempt 2: cloudscraper (handles Cloudflare)
+    # Attempt 2: cloudscraper fallback
     if html is None:
         try:
             import cloudscraper
@@ -248,7 +254,7 @@ async def import_recipe_from_url(req: ImportURLRequest, user: dict = Depends(get
     if html is None:
         raise HTTPException(
             status_code=400,
-            detail="Could not fetch this recipe URL. The site may block automated access. Try a different recipe site (BBC Good Food, Food.com, NYT Cooking work well)."
+            detail="Could not fetch this recipe URL. The site may block automated access. Try: BBC Good Food, NYT Cooking, Sally's Baking, Pinch of Yum, Love and Lemons, Minimalist Baker, RecipeTin Eats."
         )
 
     soup = BeautifulSoup(html, 'lxml')
@@ -265,7 +271,7 @@ async def import_recipe_from_url(req: ImportURLRequest, user: dict = Depends(get
     if not has_name and not has_content:
         raise HTTPException(
             status_code=422,
-            detail="Could not extract recipe data from this URL. The site may require JavaScript or block scraping. Try BBC Good Food, Food.com, or NYT Cooking."
+            detail="Could not extract recipe data from this URL. The site may use heavy JavaScript. Try: BBC Good Food, NYT Cooking, Sally's Baking, Pinch of Yum, Love and Lemons, Minimalist Baker, RecipeTin Eats."
         )
 
     recipe_data['source_url'] = url

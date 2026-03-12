@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Utensils, Plus, Trash2, ChevronLeft, ChevronRight } from 'lucide-react';
-import { mealPlanAPI, recipesAPI } from '../lib/api';
+import { Utensils, Plus, Trash2, ChevronLeft, ChevronRight, ShoppingCart } from 'lucide-react';
+import { mealPlanAPI, recipesAPI, groceryAPI } from '../lib/api';
 import { toast } from 'sonner';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -72,6 +72,19 @@ const MealPlannerPage = () => {
       toast.success('Meal removed');
     } catch (error) {
       toast.error('Failed to delete meal');
+    }
+  };
+
+  const handleAddToGrocery = async (planId) => {
+    try {
+      const res = await groceryAPI.addFromMeal(planId);
+      if (res.data.added > 0) {
+        toast.success(`Added ${res.data.added} missing ingredients to grocery list`);
+      } else {
+        toast.info(res.data.message || 'All ingredients already in pantry or grocery list');
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to add ingredients');
     }
   };
 
@@ -178,13 +191,23 @@ const MealPlannerPage = () => {
                         {meal.notes && (
                           <p className="text-xs opacity-70 truncate">{meal.notes}</p>
                         )}
-                        <button
-                          onClick={() => handleDelete(meal.id)}
-                          className="absolute top-1 right-1 p-1 hover:bg-white/50 rounded opacity-0 group-hover:opacity-100 transition-opacity"
-                          data-testid={`delete-meal-${meal.id}`}
-                        >
-                          <Trash2 className="w-3 h-3 text-red-500" />
-                        </button>
+                        <div className="absolute top-1 right-1 flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                          <button
+                            onClick={() => handleAddToGrocery(meal.id)}
+                            className="p-1 hover:bg-white/50 rounded"
+                            title="Add missing ingredients to grocery list"
+                            data-testid={`grocery-meal-${meal.id}`}
+                          >
+                            <ShoppingCart className="w-3 h-3 text-emerald-600" />
+                          </button>
+                          <button
+                            onClick={() => handleDelete(meal.id)}
+                            className="p-1 hover:bg-white/50 rounded"
+                            data-testid={`delete-meal-${meal.id}`}
+                          >
+                            <Trash2 className="w-3 h-3 text-red-500" />
+                          </button>
+                        </div>
                       </div>
                     ))
                   )}

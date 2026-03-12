@@ -179,6 +179,7 @@ export const groceryAPI = {
   updateItem: (id, data) => api.put(`/grocery/${id}`, data),
   deleteItem: (id) => api.delete(`/grocery/${id}`),
   clearChecked: () => api.delete('/grocery'),
+  addFromMeal: (planId) => api.post(`/grocery/add-from-meal/${planId}`),
 };
 
 // Contacts

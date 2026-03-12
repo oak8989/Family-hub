@@ -54,6 +54,9 @@ const ChoresPage = () => {
 
   const isAdmin = user?.role === 'owner' || user?.role === 'parent';
 
+  // Get live user points from leaderboard (auth context is stale)
+  const myPoints = leaderboard.find(m => m.id === user?.id)?.points || 0;
+
   useEffect(() => {
     loadData();
   }, []);
@@ -303,7 +306,7 @@ const ChoresPage = () => {
         <Card className="card-base">
           <CardContent className="p-4 text-center">
             <Star className="w-8 h-8 text-yellow-500 mx-auto mb-2" />
-            <p className="text-2xl font-bold text-navy">{user?.points || 0}</p>
+            <p className="text-2xl font-bold text-navy" data-testid="user-points">{myPoints}</p>
             <p className="text-sm text-navy-light">Your Points</p>
           </CardContent>
         </Card>
@@ -439,16 +442,16 @@ const ChoresPage = () => {
                         </Badge>
                         <Button
                           size="sm"
-                          disabled={(user?.points || 0) < reward.points_required}
+                          disabled={myPoints < reward.points_required}
                           onClick={() => handleClaimReward(reward.id, user?.id)}
                           data-testid={`claim-reward-${reward.id}`}
                         >
-                          {(user?.points || 0) >= reward.points_required ? 'Claim' : 'Need more points'}
+                          {myPoints >= reward.points_required ? 'Claim' : 'Need more points'}
                         </Button>
                       </div>
-                      {(user?.points || 0) < reward.points_required && (
+                      {myPoints < reward.points_required && (
                         <Progress
-                          value={((user?.points || 0) / reward.points_required) * 100}
+                          value={(myPoints / reward.points_required) * 100}
                           className="mt-2 h-2"
                         />
                       )}

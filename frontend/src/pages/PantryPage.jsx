@@ -143,11 +143,16 @@ const PantryPage = () => {
     for (const cat of categories) {
       if (lower.includes(cat.toLowerCase())) return cat;
     }
-    if (lower.includes('drink') || lower.includes('juice') || lower.includes('water') || lower.includes('soda')) return 'Beverages';
-    if (lower.includes('milk') || lower.includes('cheese') || lower.includes('yogurt') || lower.includes('butter')) return 'Dairy';
-    if (lower.includes('fruit') || lower.includes('vegetable')) return 'Produce';
-    if (lower.includes('chip') || lower.includes('cookie') || lower.includes('candy')) return 'Snacks';
-    if (lower.includes('sauce') || lower.includes('ketchup') || lower.includes('mustard')) return 'Condiments';
+    if (lower.includes('drink') || lower.includes('juice') || lower.includes('water') || lower.includes('soda') || lower.includes('tea') || lower.includes('coffee') || lower.includes('beer') || lower.includes('wine')) return 'Beverages';
+    if (lower.includes('milk') || lower.includes('cheese') || lower.includes('yogurt') || lower.includes('butter') || lower.includes('cream') || lower.includes('egg')) return 'Dairy';
+    if (lower.includes('fruit') || lower.includes('vegetable') || lower.includes('salad') || lower.includes('herb') || lower.includes('fresh')) return 'Produce';
+    if (lower.includes('chip') || lower.includes('cookie') || lower.includes('candy') || lower.includes('chocolate') || lower.includes('cracker') || lower.includes('bar') || lower.includes('nut')) return 'Snacks';
+    if (lower.includes('sauce') || lower.includes('ketchup') || lower.includes('mustard') || lower.includes('dressing') || lower.includes('oil') || lower.includes('vinegar') || lower.includes('mayo')) return 'Condiments';
+    if (lower.includes('spice') || lower.includes('seasoning') || lower.includes('pepper') || lower.includes('salt') || lower.includes('cumin') || lower.includes('paprika')) return 'Spices';
+    if (lower.includes('chicken') || lower.includes('beef') || lower.includes('pork') || lower.includes('fish') || lower.includes('meat') || lower.includes('turkey') || lower.includes('sausage') || lower.includes('bacon')) return 'Meat';
+    if (lower.includes('frozen') || lower.includes('ice')) return 'Frozen';
+    if (lower.includes('can') || lower.includes('soup') || lower.includes('bean') || lower.includes('tomato') || lower.includes('tuna')) return 'Canned';
+    if (lower.includes('pasta') || lower.includes('rice') || lower.includes('cereal') || lower.includes('flour') || lower.includes('bread') || lower.includes('grain') || lower.includes('oat') || lower.includes('noodle')) return 'Dry Goods';
     return 'Other';
   };
 
