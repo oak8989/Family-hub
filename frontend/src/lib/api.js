@@ -70,6 +70,8 @@ export const authAPI = {
   pinLogin: (pin) => api.post('/auth/pin-login', { pin }),
   userPinLogin: (pin) => api.post('/auth/user-pin-login', { pin }),
   getMe: () => api.get('/auth/me'),
+  changePassword: (data) => api.post('/auth/change-password', data),
+  resetPassword: (userId) => api.post('/auth/reset-password', { user_id: userId }),
 };
 
 // Family

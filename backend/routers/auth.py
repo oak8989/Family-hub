@@ -1,5 +1,5 @@
 from fastapi import APIRouter, HTTPException, Depends
-from models.schemas import UserCreate, UserLogin, FamilyPinLogin
+from models.schemas import UserCreate, UserLogin, FamilyPinLogin, ChangePassword, ResetMemberPassword
 from auth import (
     get_current_user, hash_password, verify_password, create_token,
     generate_pin, generate_user_pin, DEFAULT_FAMILY_SETTINGS
@@ -99,3 +99,36 @@ async def get_me(user: dict = Depends(get_current_user)):
     if not user_data:
         return {"user_id": user["user_id"], "family_id": user["family_id"], "role": user.get("role", "member")}
     return user_data
+
+
+@router.post("/change-password")
+async def change_password(data: ChangePassword, user: dict = Depends(get_current_user)):
+    if len(data.new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters")
+    user_doc = await db.users.find_one({"id": user["user_id"]}, {"_id": 0})
+    if not user_doc:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not verify_password(data.current_password, user_doc["password"]):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    await db.users.update_one(
+        {"id": user["user_id"]},
+        {"$set": {"password": hash_password(data.new_password)}}
+    )
+    return {"message": "Password changed successfully"}
+
+
+@router.post("/reset-password")
+async def reset_member_password(data: ResetMemberPassword, user: dict = Depends(get_current_user)):
+    from auth import get_user_role
+    role = await get_user_role(user)
+    if role not in ["owner", "parent"]:
+        raise HTTPException(status_code=403, detail="Only owners and parents can reset passwords")
+    target = await db.users.find_one({"id": data.user_id, "family_id": user["family_id"]}, {"_id": 0})
+    if not target:
+        raise HTTPException(status_code=404, detail="Member not found")
+    temp_password = ''.join(__import__('secrets').choice(__import__('string').ascii_letters + __import__('string').digits) for _ in range(12))
+    await db.users.update_one(
+        {"id": data.user_id},
+        {"$set": {"password": hash_password(temp_password)}}
+    )
+    return {"message": f"Password reset for {target['name']}", "temp_password": temp_password}

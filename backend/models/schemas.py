@@ -24,6 +24,14 @@ class UserInvite(BaseModel):
 class UserRoleUpdate(BaseModel):
     role: str
 
+class ChangePassword(BaseModel):
+    current_password: str
+    new_password: str
+
+class ResetMemberPassword(BaseModel):
+    user_id: str
+
+
 class FamilyCreate(BaseModel):
     name: str
 

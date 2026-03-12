@@ -17,9 +17,9 @@ import {
   RefreshCw, Server, Check, X, Crown, Eye, EyeOff, Copy, Key,
   QrCode, Download, Bell, BellOff, Smartphone, Upload, Loader2,
   Activity, Database, Mail, Brain, Wifi, WifiOff, FileText,
-  RotateCcw, Save, TestTube
+  RotateCcw, Save, TestTube, Lock, User
 } from 'lucide-react';
-import api, { qrCodeAPI, notificationsAPI, exportAPI, importAPI, adminAPI } from '../lib/api';
+import api, { qrCodeAPI, notificationsAPI, exportAPI, importAPI, adminAPI, authAPI } from '../lib/api';
 
 const ROLE_COLORS = {
   owner: 'bg-amber-500',
@@ -75,6 +75,12 @@ const SettingsPage = () => {
   const [adminTab, setAdminTab] = useState('email');
   const [adminLogs, setAdminLogs] = useState('');
   const [adminLoading, setAdminLoading] = useState(false);
+
+  // Password state
+  const [passwordForm, setPasswordForm] = useState({ current: '', new_pass: '', confirm: '' });
+  const [passwordLoading, setPasswordLoading] = useState(false);
+  const [showPasswords, setShowPasswords] = useState(false);
+  const [resetResult, setResetResult] = useState(null);
   const [smtpForm, setSmtpForm] = useState({ smtp_host: '', smtp_port: 587, smtp_user: '', smtp_password: '', smtp_from: '' });
   const [googleForm, setGoogleForm] = useState({ google_client_id: '', google_client_secret: '', google_redirect_uri: '' });
   const [openaiForm, setOpenaiForm] = useState({ openai_api_key: '' });
@@ -179,6 +185,42 @@ const SettingsPage = () => {
       toast.success('Server is restarting...');
     } catch {
       toast.error('Failed to restart server');
+    }
+  };
+
+  const handleChangePassword = async () => {
+    if (!passwordForm.current || !passwordForm.new_pass) {
+      toast.error('Please fill in all fields');
+      return;
+    }
+    if (passwordForm.new_pass.length < 6) {
+      toast.error('New password must be at least 6 characters');
+      return;
+    }
+    if (passwordForm.new_pass !== passwordForm.confirm) {
+      toast.error('New passwords do not match');
+      return;
+    }
+    setPasswordLoading(true);
+    try {
+      await authAPI.changePassword({ current_password: passwordForm.current, new_password: passwordForm.new_pass });
+      toast.success('Password changed successfully!');
+      setPasswordForm({ current: '', new_pass: '', confirm: '' });
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to change password');
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  const handleResetMemberPassword = async (memberId) => {
+    if (!window.confirm('Reset this member\'s password? A temporary password will be generated.')) return;
+    try {
+      const res = await authAPI.resetPassword(memberId);
+      setResetResult({ memberId, tempPassword: res.data.temp_password, message: res.data.message });
+      toast.success(res.data.message);
+    } catch (error) {
+      toast.error(error.response?.data?.detail || 'Failed to reset password');
     }
   };
 
@@ -341,6 +383,9 @@ const SettingsPage = () => {
         <TabsList className="bg-warm-white flex-wrap">
           <TabsTrigger value="family" className="data-[state=active]:bg-terracotta data-[state=active]:text-white">
             <Users className="w-4 h-4 mr-1 sm:mr-2" /> <span className="hidden sm:inline">Family</span>
+          </TabsTrigger>
+          <TabsTrigger value="account" className="data-[state=active]:bg-terracotta data-[state=active]:text-white">
+            <Lock className="w-4 h-4 mr-1 sm:mr-2" /> <span className="hidden sm:inline">Account</span>
           </TabsTrigger>
           {isAdmin && (
             <>
@@ -619,6 +664,101 @@ const SettingsPage = () => {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Account Tab - Change Password */}
+        <TabsContent value="account" className="space-y-4" data-testid="account-tab">
+          <Card className="card-base">
+            <CardHeader>
+              <CardTitle className="text-navy">Change Password</CardTitle>
+              <CardDescription>Update your account password</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-1.5">
+                <Label>Current Password</Label>
+                <div className="relative">
+                  <Input
+                    type={showPasswords ? 'text' : 'password'}
+                    value={passwordForm.current}
+                    onChange={e => setPasswordForm({...passwordForm, current: e.target.value})}
+                    placeholder="Enter current password"
+                    className="input-cozy pr-10"
+                    data-testid="current-password-input"
+                  />
+                  <button type="button" onClick={() => setShowPasswords(!showPasswords)} className="absolute right-3 top-1/2 -translate-y-1/2 text-navy-light">
+                    {showPasswords ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+              <div className="space-y-1.5">
+                <Label>New Password</Label>
+                <Input
+                  type={showPasswords ? 'text' : 'password'}
+                  value={passwordForm.new_pass}
+                  onChange={e => setPasswordForm({...passwordForm, new_pass: e.target.value})}
+                  placeholder="At least 6 characters"
+                  className="input-cozy"
+                  data-testid="new-password-input"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label>Confirm New Password</Label>
+                <Input
+                  type={showPasswords ? 'text' : 'password'}
+                  value={passwordForm.confirm}
+                  onChange={e => setPasswordForm({...passwordForm, confirm: e.target.value})}
+                  placeholder="Re-enter new password"
+                  className="input-cozy"
+                  onKeyDown={e => e.key === 'Enter' && handleChangePassword()}
+                  data-testid="confirm-password-input"
+                />
+              </div>
+              <Button onClick={handleChangePassword} disabled={passwordLoading} className="btn-primary" data-testid="change-password-btn">
+                {passwordLoading ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Lock className="w-4 h-4 mr-2" />}
+                Change Password
+              </Button>
+            </CardContent>
+          </Card>
+
+          {/* Owner/Parent: Reset Member Passwords */}
+          {isAdmin && members.length > 1 && (
+            <Card className="card-base">
+              <CardHeader>
+                <CardTitle className="text-navy">Reset Member Passwords</CardTitle>
+                <CardDescription>Generate a temporary password for a family member</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  {members.filter(m => m.id !== user?.user_id).map(member => (
+                    <div key={member.id} className="flex items-center justify-between p-3 bg-cream dark:bg-gray-700/50 rounded-xl">
+                      <div className="flex items-center gap-3">
+                        <div className="w-8 h-8 rounded-full bg-terracotta/20 flex items-center justify-center">
+                          <User className="w-4 h-4 text-terracotta" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-navy dark:text-gray-200 text-sm">{member.name}</p>
+                          <p className="text-xs text-navy-light dark:text-gray-400">{ROLE_LABELS[member.role] || member.role}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {resetResult?.memberId === member.id && (
+                          <div className="flex items-center gap-1 bg-white dark:bg-gray-800 px-2 py-1 rounded-lg border">
+                            <span className="font-mono text-xs font-bold text-navy dark:text-gray-200" data-testid={`reset-temp-pw-${member.id}`}>{resetResult.tempPassword}</span>
+                            <button onClick={() => { navigator.clipboard.writeText(resetResult.tempPassword); toast.success('Copied!'); }} className="text-navy-light hover:text-navy">
+                              <Copy className="w-3 h-3" />
+                            </button>
+                          </div>
+                        )}
+                        <Button variant="outline" size="sm" onClick={() => handleResetMemberPassword(member.id)} data-testid={`reset-pw-btn-${member.id}`}>
+                          <Key className="w-3 h-3 mr-1" /> Reset
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         {/* Modules Tab */}
